@@ -2,63 +2,60 @@ package org.tss.tm.entity.system;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.tss.tm.entity.common.BaseEntity;
 import org.tss.tm.entity.tenant.Alert;
-import org.tss.tm.entity.tenant.FinancialTransaction;
 import org.tss.tm.entity.tenant.ScenarioParam;
+import org.tss.tm.common.enums.RuleCategory;
+import org.tss.tm.common.enums.StatusBasic;
 
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
-@Data
+@Getter
+@Setter
 @Entity
-@Table(name = "rule")
+@Table(name = "rules", schema = "public")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString
-public class Rule {
+public class Rule extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "rule_id")
-    private Long ruleId;
+    @ToString.Include
+    private UUID ruleId;
 
-    @Column(name = "rule_code")
+    @Column(name = "rule_code", unique = true, nullable = false)
+    @ToString.Include
     private String ruleCode;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "rule_scenario",
-            joinColumns = @JoinColumn(name = "rule_id"),
-            inverseJoinColumns = @JoinColumn(name = "scenario_id")
-    )
-    private List<Scenario> scenarios;
-
-    @Column(name = "rule_name")
+    @Column(name = "rule_name", nullable = false)
+    @ToString.Include
     private String ruleName;
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "rule_category")
-    private String ruleCategory;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "rule_category", nullable = false)
+    private RuleCategory ruleCategory;
 
-    @Column(name = "status")
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private StatusBasic status = StatusBasic.ACTIVE;
 
-    @JoinColumn(name = "created_by")
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false)
     private SystemAdmin createdBy;
 
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "scenario_rule_mapping", schema = "public", joinColumns = @JoinColumn(name = "rule_id"), inverseJoinColumns = @JoinColumn(name = "scenario_id"))
+    private List<Scenario> scenarios;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @OneToMany(mappedBy = "scenarioParam", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "rule", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ScenarioParam> scenarioParams;
 
-    @OneToMany(mappedBy = "alert", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "rule")
     private List<Alert> alerts;
 }

@@ -1,39 +1,39 @@
 package org.tss.tm.entity.system;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
+@Getter
+@Setter
 @Entity
-@Table(name = "tenant_scenario_mapping")
-@Data
+@Table(name = "tenant_scenario_mapping", schema = "public")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class TenantScenarioMapping {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "tenant_scenario_mapping_id")
-    private Long id;
+    @ToString.Include
+    private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tenant_id")
+    @JoinColumn(name = "tenant_id", nullable = false)
     private Tenant tenant;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "scenario_id")
+    @JoinColumn(name = "scenario_id", nullable = false)
     private Scenario scenario;
 
-    @Column(name = "is_enabled")
-    private Boolean isEnabled;
+    @Column(name = "is_enabled", nullable = false)
+    private Boolean isEnabled = true;
 
-    @Column(name = "activated_at")
-    private LocalDateTime activatedAt;
+    @Column(name = "activated_at", nullable = false)
+    private LocalDateTime activatedAt = LocalDateTime.now();
 
     @Column(name = "deactivated_at")
     private LocalDateTime deactivatedAt;

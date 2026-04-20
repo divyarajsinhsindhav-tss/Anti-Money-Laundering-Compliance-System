@@ -2,9 +2,12 @@ package org.tss.tm.entity.tenant;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.tss.tm.common.enums.UserRole;
+import org.tss.tm.entity.common.BaseEntity;
 import org.tss.tm.entity.system.Tenant;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Entity
@@ -12,56 +15,47 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString
-public class TenantUser {
+public class TenantUser extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "user_id")
-    private Long userId;
+    private UUID userId;
 
-    @JoinColumn(name = "tenant_id")
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false)
     private Tenant tenant;
 
-    @Column(name = "user_code")
+    @Column(name = "user_code", nullable = false, length = 20)
     private String userCode;
 
-    @Column(name = "role")
-    private String role;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    private UserRole role;
 
-    @Column(name = "first_name")
+    @Column(name = "first_name", nullable = false, length = 100)
     private String firstName;
 
-    @Column(name = "last_name")
+    @Column(name = "last_name", nullable = false, length = 100)
     private String lastName;
 
-    @Column(name = "phone_number")
+    @Column(name = "phone_number", length = 20)
     private String phoneNumber;
 
-    @Column(name = "email")
+    @Column(name = "email", nullable = false, length = 255)
     private String email;
 
-    @Column(name = "password")
-    private String password;
+    @Column(name = "password_hash", nullable = false, length = 512)
+    private String passwordHash;
 
-    @Column(name = "is_active")
-    private Boolean isActive;
-
-    @Column(name = "is_deleted")
-    private Boolean isDeleted;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
+    @Column(name = "is_active", nullable = false)
+    private Boolean isActive = true;
 
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
 
-    @Column(name = "failed_login_count")
-    private Integer failedLoginCount;
+    @Column(name = "failed_login_count", nullable = false)
+    private Integer failedLoginCount = 0;
 
     @Column(name = "locked_until")
     private LocalDateTime lockedUntil;

@@ -2,48 +2,51 @@ package org.tss.tm.entity.system;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.tss.tm.entity.common.BaseEntity;
 import org.tss.tm.entity.tenant.ScenarioParam;
+import org.tss.tm.common.enums.StatusBasic;
 
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
-@Data
+@Getter
+@Setter
 @Entity
-@Table(name = "scenario")
+@Table(name = "scenarios", schema = "public")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString
-public class Scenario {
+public class Scenario extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "scenario_id")
-    private Long scenarioId;
+    @ToString.Include
+    private UUID scenarioId;
 
-    @Column(name = "scenario_code")
+    @Column(name = "scenario_code", unique = true, nullable = false)
+    @ToString.Include
     private String scenarioCode;
 
-    @Column(name = "name")
+    @Column(name = "name", nullable = false)
+    @ToString.Include
     private String name;
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "status")
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private StatusBasic status = StatusBasic.ACTIVE;
 
-    @JoinColumn(name = "created_by")
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false)
     private SystemAdmin createdBy;
 
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @ManyToMany(mappedBy = "scenarios")
+    private List<Rule> rules;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @OneToMany(mappedBy = "scenarioParam", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ScenarioParam> scenarioParams;
 
     @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)

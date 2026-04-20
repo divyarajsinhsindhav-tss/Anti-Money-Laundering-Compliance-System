@@ -2,32 +2,37 @@ package org.tss.tm.entity.system;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.tss.tm.common.enums.JobStatus;
+import org.tss.tm.common.enums.JobType;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
-@Data
+@Getter
+@Setter
 @Entity
-@Table(name = "job_execution")
+@Table(name = "job_execution", schema = "public")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString
 public class JobExecution {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "job_id")
-    private Long jobId;
+    private UUID jobId;
 
-    @JoinColumn(name = "tenant_id")
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false)
     private Tenant tenant;
 
-    @Column(name = "job_type")
-    private String jobType;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "job_type", nullable = false)
+    private JobType jobType;
 
-    @Column(name = "status")
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private JobStatus status = JobStatus.PENDING;
 
     @Column(name = "started_at")
     private LocalDateTime startedAt;
@@ -35,9 +40,6 @@ public class JobExecution {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-//    @Column(name = "look_back_window")
-//    private Integer lookBackDays;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
 }

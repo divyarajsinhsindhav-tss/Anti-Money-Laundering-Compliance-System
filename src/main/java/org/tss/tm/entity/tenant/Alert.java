@@ -2,68 +2,60 @@ package org.tss.tm.entity.tenant;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.tss.tm.entity.common.BaseEntity;
 import org.tss.tm.entity.system.JobExecution;
 import org.tss.tm.entity.system.Rule;
 import org.tss.tm.entity.system.Scenario;
 import org.tss.tm.entity.system.Tenant;
+import org.tss.tm.common.enums.AlertStatus;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import java.util.UUID;
 
-@Data
+@Getter
+@Setter
 @Entity
-@Table(name = "alert")
+@Table(name = "alerts")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString
-public class Alert {
+public class Alert extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "alert_id")
-    private Long alertId;
+    private UUID alertId;
 
-    @JoinColumn(name = "tenant_id")
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_id", nullable = false)
     private Tenant tenant;
 
-    @Column(name = "alert_code")
+    @Column(name = "alert_code", nullable = false, unique = true)
     private String alertCode;
 
-    @JoinColumn(name = "job_id")
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "job_id", nullable = false)
     private JobExecution job;
 
-    @JoinColumn(name = "rule_id")
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rule_id", nullable = false)
     private Rule rule;
 
-    @Column(name = "rule_param_version")
+    @Column(name = "rule_param_version", nullable = false)
     private Integer ruleParamVersion;
 
-    @Column(name = "scenario_id")
-    @OneToMany(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "scenario_id", nullable = false)
     private Scenario scenario;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "alert_transaction",
-            joinColumns = @JoinColumn(name = "alert_id"),
-            inverseJoinColumns = @JoinColumn(name = "transaction_id")
-    )
-    private List<FinancialTransaction> transactions;
-
-    @JoinColumn(name = "customer_id")
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "txn_id", nullable = false)
+    private FinancialTransaction transaction;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
-    @Column(name = "alert_status")
-    private String alertStatus;
-
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "alert_status", nullable = false)
+    private AlertStatus alertStatus = AlertStatus.OPEN;
 }

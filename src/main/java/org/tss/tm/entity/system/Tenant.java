@@ -2,72 +2,74 @@ package org.tss.tm.entity.system;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.tss.tm.entity.common.BaseEntity;
 import org.tss.tm.entity.tenant.*;
+import org.tss.tm.common.enums.TenantStatus;
 
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
-@Data
+@Getter
+@Setter
 @Entity
-@Table(name = "tenant")
+@Table(name = "tenant", schema = "public")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString
-public class Tenant {
+public class Tenant extends BaseEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(name = "tenant_id")
-    private Long tenantId;
+    @ToString.Include
+    private UUID tenantId;
 
-    @Column(name = "tenant_code")
+    @Column(name = "tenant_code", unique = true, nullable = false)
+    @ToString.Include
     private String tenantCode;
 
-    @Column(name = "name")
+    @Column(name = "name", nullable = false)
+    @ToString.Include
     private String name;
 
-    @Column(name = "display_name")
+    @Column(name = "display_name", nullable = false)
+    @ToString.Include
     private String displayName;
 
-    @Column(name = "schema_name")
+    @Column(name = "schema_name", unique = true, nullable = false)
+    @ToString.Include
     private String schemaName;
 
-    @Column(name = "status")
-    private String status;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private TenantStatus status = TenantStatus.ONBOARDING;
 
-    @JoinColumn(name = "onboarded_by_admin_id")
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "onboarded_by_admin_id", nullable = false)
     private SystemAdmin onboardedByAdmin;
-
-    @Column(name = "created_at")
-    private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "tenant", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<JobExecution> jobExecutions;
 
-    @OneToMany(mappedBy = "account", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "tenant", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Account> accounts;
 
-    @OneToMany(mappedBy = "alert", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "tenant", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Alert> alerts;
 
-    @OneToMany(mappedBy = "amlCase", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "tenant", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<AmlCase> amlCases;
 
-    @OneToMany(mappedBy = "customer", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "tenant", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Customer> customers;
 
-    @OneToMany(mappedBy = "financialTransaction", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "tenant", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<FinancialTransaction> transactions;
 
-    @OneToMany(mappedBy = "scenarioParam", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "tenant", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<ScenarioParam> scenarioParams;
 
-    @OneToMany(mappedBy = "tenantUser", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "tenant", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<TenantUser> tenantUsers;
 
     @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, orphanRemoval = true)
