@@ -3,6 +3,7 @@ package org.tss.tm.service.impl;
 import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.tss.tm.repository.TenantRepo;
 import org.tss.tm.service.interfaces.FlywayMigration;
 import org.tss.tm.service.interfaces.TenantService;
 

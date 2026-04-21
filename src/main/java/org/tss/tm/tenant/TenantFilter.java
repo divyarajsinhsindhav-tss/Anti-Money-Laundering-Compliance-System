@@ -5,14 +5,15 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.annotation.Order;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Component;
 import org.tss.tm.common.constant.TenantConstants;
+import org.tss.tm.security.JwtTokenProvider;
 
 import java.io.IOException;
 
 @Component
 @Slf4j
-@Order(1)
 public class TenantFilter implements Filter {
 
     @Override
