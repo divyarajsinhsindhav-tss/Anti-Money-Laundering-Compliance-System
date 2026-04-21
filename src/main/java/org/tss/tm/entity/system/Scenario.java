@@ -1,0 +1,54 @@
+package org.tss.tm.entity.system;
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.tss.tm.entity.common.BaseEntity;
+import org.tss.tm.entity.tenant.ScenarioParam;
+import org.tss.tm.common.enums.StatusBasic;
+
+import java.util.List;
+import java.util.UUID;
+
+@Getter
+@Setter
+@Entity
+@Table(name = "scenarios", schema = "public")
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Scenario extends BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "scenario_id")
+    @ToString.Include
+    private UUID scenarioId;
+
+    @Column(name = "scenario_code", unique = true, nullable = false)
+    @ToString.Include
+    private String scenarioCode;
+
+    @Column(name = "name", nullable = false)
+    @ToString.Include
+    private String name;
+
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private StatusBasic status = StatusBasic.ACTIVE;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", nullable = false)
+    private SystemAdmin createdBy;
+
+    @ManyToMany(mappedBy = "scenarios")
+    private List<Rule> rules;
+
+    @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ScenarioParam> scenarioParams;
+
+    @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TenantScenarioMapping> tenantScenarios;
+}
