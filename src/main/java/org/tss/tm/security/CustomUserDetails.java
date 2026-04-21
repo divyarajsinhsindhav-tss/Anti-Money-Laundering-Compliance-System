@@ -1,6 +1,9 @@
 package org.tss.tm.security;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -10,6 +13,8 @@ import org.tss.tm.entity.tenant.TenantUser;
 import java.util.Collection;
 
 @Getter
+@RequiredArgsConstructor
+@AllArgsConstructor
 public class CustomUserDetails implements UserDetails {
 
     private String username;
@@ -19,22 +24,6 @@ public class CustomUserDetails implements UserDetails {
     private boolean isSystemAdmin;
     private boolean enabled;
     private boolean accountNonLocked;
-
-    public CustomUserDetails(String username,
-            String password,
-            Collection<? extends GrantedAuthority> authorities,
-            String tenant,
-            boolean isSystemAdmin,
-            boolean enabled,
-            boolean accountNonLocked) {
-        this.username = username;
-        this.password = password;
-        this.authorities = authorities;
-        this.tenant = tenant;
-        this.isSystemAdmin = isSystemAdmin;
-        this.enabled = enabled;
-        this.accountNonLocked = accountNonLocked;
-    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

@@ -4,6 +4,7 @@ import jakarta.annotation.PostConstruct;
 import org.flywaydb.core.Flyway;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.tss.tm.repository.TenantRepo;
 import org.tss.tm.service.interfaces.FlywayMigration;
 
 import javax.sql.DataSource;
@@ -12,11 +13,11 @@ import java.util.List;
 @Component
 public class StartupMigrationRunner {
 
-    private TenantRepository tenantRepository;
+    private TenantRepo tenantRepository;
     private FlywayMigration flywayMigration;
     public DataSource dataSource;
 
-    public StartupMigrationRunner(TenantRepository tenantRepository, FlywayMigration flywayMigration,
+    public StartupMigrationRunner(TenantRepo tenantRepository, FlywayMigration flywayMigration,
             DataSource dataSource) {
         this.tenantRepository = tenantRepository;
         this.flywayMigration = flywayMigration;
@@ -30,12 +31,11 @@ public class StartupMigrationRunner {
     }
 
     public void migrateAllTenants() {
-        List<String> schemas = tenantRepository.findAllSchemas();
-
-        for (String schema : schemas) {
-            flywayMigration.migrateSchema(schema);
-        }
+        tenantRepository.findAll().forEach(tenant -> {
+            flywayMigration.migrateSchema(tenant.getSchemaName());
+        });
     }
+
 
     public void migratePublicSchema() {
         Flyway flywayPublic = Flyway.configure()

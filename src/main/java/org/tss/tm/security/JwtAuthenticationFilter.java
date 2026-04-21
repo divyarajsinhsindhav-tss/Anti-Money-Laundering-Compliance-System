@@ -28,8 +28,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+            HttpServletResponse response,
+            FilterChain filterChain) throws ServletException, IOException {
         try {
             String jwt = getJwtFromRequest(request);
 
@@ -38,7 +38,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String tenantFromHeader = request.getHeader(TenantConstants.TENANT_HEADER_NAME);
 
                 if (StringUtils.hasText(tenantFromHeader) && !tenantFromJwt.equals(tenantFromHeader)) {
-                    log.error("Tenant mismatch detected! JWT Tenant: {}, Header Tenant: {}", tenantFromJwt, tenantFromHeader);
+                    log.error("Tenant mismatch detected! JWT Tenant: {}, Header Tenant: {}", tenantFromJwt,
+                            tenantFromHeader);
                     throw new BadCredentialsException("Tenant mismatch. Unauthorized access to tenant resource.");
                 }
 
@@ -49,8 +50,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             userDetails,
                             null,
-                            userDetails.getAuthorities()
-                    );
+                            userDetails.getAuthorities());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
@@ -74,6 +74,5 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         return null;
     }
-
 
 }

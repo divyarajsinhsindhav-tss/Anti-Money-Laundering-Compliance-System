@@ -3,6 +3,7 @@ package org.tss.tm.service.impl;
 import org.springframework.data.crossstore.ChangeSetPersister;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.tss.tm.entity.system.Tenant;
 import org.tss.tm.repository.TenantRepo;
 import org.tss.tm.service.interfaces.FlywayMigration;
 import org.tss.tm.service.interfaces.TenantService;
@@ -37,9 +38,11 @@ public class TenantServiceImpl implements TenantService {
             stmt.execute("CREATE SCHEMA IF NOT EXISTS " + schemaName);
         }
 
-        Tenant tenant = new Tenant();
-        tenant.setId(tenantId);
-        tenant.setSchemaName(schemaName);
+        Tenant tenant = Tenant.builder()
+                .name(tenantId)
+                .displayName(tenantId)
+                .schemaName(schemaName)
+                .build();
 
         tenantRepo.save(tenant);
 
@@ -49,14 +52,19 @@ public class TenantServiceImpl implements TenantService {
 
     @Override
     public Tenant getTenantByName(String tenantName) {
-        Tenant tenant = tenantRepo.findByName(tenantName)
-                .orElseThrow(() -> {
-                    throw new ChangeSetPersister.NotFoundException("Tenant not found");
-                });
-        return tenant;
+        return tenantRepo.findByName(tenantName)
+                .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantName));
+    }
+
+    @Override
+    public void migrateAllTenants() {
+        tenantRepo.findAll().forEach(tenant -> {
+            flywayMigration.migrateSchema(tenant.getSchemaName());
+        });
     }
 
     private void validateTenantName(String tenantName) {
+
         if (tenantName == null) {
             throw new IllegalArgumentException("tenantName is null");
         }
