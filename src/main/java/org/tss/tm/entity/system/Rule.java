@@ -2,6 +2,8 @@ package org.tss.tm.entity.system;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.tss.tm.entity.common.BaseEntity;
 import org.tss.tm.entity.tenant.Alert;
 import org.tss.tm.entity.tenant.ScenarioParam;
@@ -38,11 +40,14 @@ public class Rule extends BaseEntity {
     private String description;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "rule_category", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "rule_category", nullable = false, columnDefinition = "rule_category_enum")
     private RuleCategory ruleCategory;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "status", nullable = false, columnDefinition = "status_basic")
     private StatusBasic status = StatusBasic.ACTIVE;
 
     @ManyToOne(fetch = FetchType.LAZY)

@@ -23,6 +23,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final TenantUserRepo tenantUserRepo;
 
     @Override
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         String tenant = TenantContext.getCurrentTenant();
 
@@ -44,7 +45,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 tenantUser.getEmail(),
                 tenantUser.getPasswordHash(),
                 List.of(new SimpleGrantedAuthority("ROLE_" + tenantUser.getRole().name())),
-                tenant,
+                tenantUser.getTenant().getTenantCode(),
                 false,
                 tenantUser.getIsActive(),
                 isAccountNonLocked(tenantUser.getLockedUntil()));

@@ -2,6 +2,9 @@ package org.tss.tm.entity.tenant;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import org.tss.tm.common.enums.CaseStatus;
 import org.tss.tm.entity.common.BaseEntity;
 import org.tss.tm.entity.system.Tenant;
 
@@ -36,8 +39,11 @@ public class AmlCase extends BaseEntity {
     @JoinColumn(name = "assigned_to")
     private TenantUser assignedTo;
 
-    @Column(name = "status", nullable = false)
-    private String status; // Consider using CaseStatus enum
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "status", nullable = false, columnDefinition = "case_status_enum")
+    private CaseStatus status = CaseStatus.OPEN;
 
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;

@@ -15,6 +15,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.tss.tm.common.constant.TenantConstants;
+import org.tss.tm.tenant.TenantContext;
 
 import java.io.IOException;
 
@@ -37,7 +38,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String tenantFromJwt = tokenProvider.getTenantFromJwtToken(jwt);
                 String tenantFromHeader = request.getHeader(TenantConstants.TENANT_HEADER_NAME);
 
-                if (StringUtils.hasText(tenantFromHeader) && !tenantFromJwt.equals(tenantFromHeader)) {
+                if (tenantFromHeader == null || tenantFromHeader.isEmpty()) {
+                    tenantFromHeader = TenantConstants.DEFAULT_TENANT;
+                }
+
+                if (!tenantFromJwt.equalsIgnoreCase(tenantFromHeader)) {
                     log.error("Tenant mismatch detected! JWT Tenant: {}, Header Tenant: {}", tenantFromJwt,
                             tenantFromHeader);
                     throw new BadCredentialsException("Tenant mismatch. Unauthorized access to tenant resource.");

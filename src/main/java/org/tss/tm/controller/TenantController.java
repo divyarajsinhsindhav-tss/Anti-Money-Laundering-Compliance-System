@@ -1,0 +1,59 @@
+package org.tss.tm.controller;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import org.tss.tm.common.response.ApiResponse;
+import org.tss.tm.dto.tenant.request.TenantAdminRegistrationRequest;
+import org.tss.tm.dto.tenant.request.TenantRegistrationRequest;
+import org.tss.tm.dto.tenant.response.TenantResponse;
+import org.tss.tm.service.interfaces.TenantService;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.util.List;
+import java.sql.SQLException;
+
+@Slf4j
+@RequiredArgsConstructor
+@RestController
+@RequestMapping("/api/v1/tenants")
+public class TenantController {
+
+    private final TenantService tenantService;
+
+
+    @PostMapping("/register")
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+    public ResponseEntity<ApiResponse<TenantResponse>> registerTenant(
+            @Valid @RequestBody TenantRegistrationRequest request,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest httpServletRequest) throws SQLException {
+        log.info("Received request to register tenant: {} from user: {}", request.getName(), userDetails.getUsername());
+        TenantResponse response = tenantService.createTenant(request, userDetails.getUsername());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.of(
+                        HttpStatus.CREATED,
+                        "Tenant registered successfully",
+                        httpServletRequest.getRequestURI(),
+                        response));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('SYSTEM_ADMIN')")
+    public ResponseEntity<ApiResponse<List<TenantResponse>>> getAllTenants(
+            HttpServletRequest httpServletRequest) {
+        log.info("Received request to fetch all tenants");
+        List<TenantResponse> response = tenantService.getAllTenants();
+        return ResponseEntity.ok(ApiResponse.of(
+                HttpStatus.OK,
+                "Tenants fetched successfully",
+                httpServletRequest.getRequestURI(),
+                response));
+    }
+}
