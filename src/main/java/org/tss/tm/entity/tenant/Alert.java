@@ -2,6 +2,8 @@ package org.tss.tm.entity.tenant;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.tss.tm.entity.common.BaseEntity;
 import org.tss.tm.entity.system.JobExecution;
 import org.tss.tm.entity.system.Rule;
@@ -55,7 +57,9 @@ public class Alert extends BaseEntity {
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(name = "alert_status", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "alert_status", nullable = false, columnDefinition = "alert_status_enum")
     private AlertStatus alertStatus = AlertStatus.OPEN;
 }

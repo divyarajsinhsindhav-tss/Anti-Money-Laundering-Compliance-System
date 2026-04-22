@@ -663,7 +663,7 @@ CREATE TRIGGER trg_alerts_updated_at
 -- ------------------------------------------------------------
 --  aml_case
 -- ------------------------------------------------------------
-CREATE TABLE public.aml_case (
+CREATE TABLE aml_case (
     case_id      UUID              NOT NULL DEFAULT uuid_generate_v7(),
     tenant_id    UUID              NOT NULL REFERENCES public.tenant(tenant_id),
 
@@ -717,7 +717,7 @@ CREATE TRIGGER trg_aml_case_updated_at
 -- ------------------------------------------------------------
 --  case_alert_mapping
 -- ------------------------------------------------------------
-CREATE TABLE public.case_alert_mapping (
+CREATE TABLE case_alert_mapping (
     case_alert_mapping_id UUID NOT NULL DEFAULT uuid_generate_v7(),
     tenant_id             UUID NOT NULL REFERENCES public.tenant(tenant_id),
     case_id               UUID NOT NULL REFERENCES public.aml_case(case_id),
@@ -727,8 +727,6 @@ CREATE TABLE public.case_alert_mapping (
     CONSTRAINT uq_case_alert         UNIQUE (case_id, alert_id)
 );
 
-CREATE INDEX ix_case_alert_case  ON public.case_alert_mapping (case_id);
-CREATE INDEX ix_case_alert_alert ON public.case_alert_mapping (alert_id);
 
 
 -- ------------------------------------------------------------
@@ -770,7 +768,6 @@ CREATE TABLE case_audit (
     CONSTRAINT chk_case_status_changed CHECK (status_from <> status_to)
 );
 
-CREATE INDEX ix_case_audit_case ON public.case_audit (case_id, changed_at DESC);
 
 
 -- ============================================================

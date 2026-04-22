@@ -2,6 +2,9 @@ package org.tss.tm.entity.tenant;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import org.tss.tm.common.enums.AccountType;
 import org.tss.tm.entity.common.BaseEntity;
 import org.tss.tm.entity.system.Tenant;
 
@@ -35,8 +38,10 @@ public class Account extends BaseEntity {
     @Column(name = "account_number", nullable = false, length = 30)
     private String accountNumber;
 
-    @Column(name = "account_type", nullable = false)
-    private String accountType;
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "account_type", nullable = false, columnDefinition = "account_type_enum")
+    private AccountType accountType;
 
     @Column(name = "opened_at", nullable = false)
     private LocalDateTime openedAt;

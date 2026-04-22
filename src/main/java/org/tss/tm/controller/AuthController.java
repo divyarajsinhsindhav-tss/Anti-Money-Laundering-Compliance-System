@@ -15,6 +15,7 @@ import org.tss.tm.common.response.ApiResponse;
 import org.tss.tm.dto.user.request.LoginRequest;
 import org.tss.tm.dto.user.response.AuthResponse;
 import org.tss.tm.service.interfaces.AuthService;
+import org.tss.tm.tenant.TenantContext;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -28,6 +29,7 @@ public class AuthController {
         public ResponseEntity<ApiResponse<AuthResponse>> login(
                         @Valid @RequestBody LoginRequest loginRequest,
                         HttpServletRequest httpServletRequest) {
+                System.out.println(TenantContext.getCurrentTenant());
                 AuthResponse authResponse = authService.login(loginRequest);
                 return ResponseEntity.ok(ApiResponse.of(
                                 HttpStatus.OK,

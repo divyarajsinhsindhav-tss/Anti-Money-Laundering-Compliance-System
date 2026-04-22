@@ -2,6 +2,8 @@ package org.tss.tm.entity.tenant;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.tss.tm.entity.system.Rule;
 import org.tss.tm.entity.system.Scenario;
 import org.tss.tm.entity.system.Tenant;
@@ -43,7 +45,8 @@ public class ScenarioParam {
     private String paramKey;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "data_type", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "data_type", nullable = false, columnDefinition = "data_type_enum")
     private DataType dataType;
 
     @Column(name = "string_value", columnDefinition = "TEXT")
@@ -55,9 +58,11 @@ public class ScenarioParam {
     @Column(name = "decimal_value", precision = 20, scale = 6)
     private BigDecimal decimalValue;
 
+    @Builder.Default
     @Column(name = "version", nullable = false)
     private Integer version = 1;
 
+    @Builder.Default
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }

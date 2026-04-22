@@ -2,6 +2,8 @@ package org.tss.tm.entity.system;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.tss.tm.entity.common.BaseEntity;
 import org.tss.tm.entity.tenant.ScenarioParam;
 import org.tss.tm.common.enums.StatusBasic;
@@ -35,8 +37,10 @@ public class Scenario extends BaseEntity {
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "status", nullable = false, columnDefinition = "status_basic")
     private StatusBasic status = StatusBasic.ACTIVE;
 
     @ManyToOne(fetch = FetchType.LAZY)

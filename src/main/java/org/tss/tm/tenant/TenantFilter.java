@@ -24,10 +24,12 @@ public class TenantFilter implements Filter {
 
         if (tenantName == null || tenantName.isEmpty()) {
             tenantName = TenantConstants.DEFAULT_TENANT;
+        } else if (!tenantName.equalsIgnoreCase(TenantConstants.DEFAULT_TENANT)) {
+            tenantName = TenantConstants.SCHEMA_PREFIX + tenantName.toLowerCase();
         }
 
         TenantContext.setCurrentTenant(tenantName);
-        log.info("Request intercepted for tenant: {}", tenantName);
+        log.info("Request intercepted for tenant: {}. Resolved schema: {}", req.getHeader(TenantConstants.TENANT_HEADER_NAME), tenantName);
 
         try {
             chain.doFilter(request, response);

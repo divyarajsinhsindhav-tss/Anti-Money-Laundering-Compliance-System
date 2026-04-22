@@ -2,6 +2,9 @@ package org.tss.tm.entity.tenant;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.tss.tm.common.enums.UserRole;
 import org.tss.tm.entity.common.BaseEntity;
 import org.tss.tm.entity.system.Tenant;
@@ -14,7 +17,7 @@ import java.util.UUID;
 @Table(name = "tenant_user")
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class TenantUser extends BaseEntity {
 
     @Id
@@ -30,7 +33,8 @@ public class TenantUser extends BaseEntity {
     private String userCode;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "role", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "role", nullable = false, columnDefinition = "user_role_enum")
     private UserRole role;
 
     @Column(name = "first_name", nullable = false, length = 100)
@@ -48,12 +52,14 @@ public class TenantUser extends BaseEntity {
     @Column(name = "password_hash", nullable = false, length = 512)
     private String passwordHash;
 
+    @Builder.Default
     @Column(name = "is_active", nullable = false)
     private Boolean isActive = true;
 
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
 
+    @Builder.Default
     @Column(name = "failed_login_count", nullable = false)
     private Integer failedLoginCount = 0;
 

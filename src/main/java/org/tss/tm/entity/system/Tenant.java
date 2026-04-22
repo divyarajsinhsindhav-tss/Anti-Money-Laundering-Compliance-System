@@ -2,6 +2,9 @@ package org.tss.tm.entity.system;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.tss.tm.entity.common.BaseEntity;
 import org.tss.tm.entity.tenant.*;
 import org.tss.tm.common.enums.TenantStatus;
@@ -15,7 +18,7 @@ import java.util.UUID;
 @Table(name = "tenant", schema = "public")
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class Tenant extends BaseEntity {
 
     @Id
@@ -40,8 +43,10 @@ public class Tenant extends BaseEntity {
     @ToString.Include
     private String schemaName;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "status", nullable = false, columnDefinition = "tenant_status_enum")
     private TenantStatus status = TenantStatus.ONBOARDING;
 
     @ManyToOne(fetch = FetchType.LAZY)

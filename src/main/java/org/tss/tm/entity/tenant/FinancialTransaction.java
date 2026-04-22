@@ -2,6 +2,8 @@ package org.tss.tm.entity.tenant;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.tss.tm.common.enums.TransactionDirection;
 import org.tss.tm.common.enums.TransactionType;
 import org.tss.tm.entity.common.BaseEntity;
@@ -45,11 +47,13 @@ public class FinancialTransaction extends BaseEntity {
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "txn_type", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "txn_type", nullable = false, columnDefinition = "txn_type_enum")
     private TransactionType txnType;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "direction", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "direction", nullable = false, columnDefinition = "direction_enum")
     private TransactionDirection direction;
 
     @Column(name = "counterparty_account_no", length = 30)
