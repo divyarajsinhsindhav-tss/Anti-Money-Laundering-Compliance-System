@@ -6,14 +6,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.tss.tm.common.constant.TenantConstants;
 import org.tss.tm.common.response.ApiResponse;
+import org.tss.tm.dto.user.request.ChangePasswordRequest;
 import org.tss.tm.dto.user.request.LoginRequest;
 import org.tss.tm.dto.user.response.AuthResponse;
+import org.tss.tm.dto.user.response.ChangePasswordResponse;
 import org.tss.tm.service.interfaces.AuthService;
 import org.tss.tm.tenant.TenantContext;
 
@@ -36,6 +40,21 @@ public class AuthController {
                                 authResponse.getMessage(),
                                 httpServletRequest.getRequestURI(),
                                 authResponse));
+        }
+
+        @PostMapping("/change-password")
+        public ResponseEntity<ApiResponse<ChangePasswordResponse>> changePassword(
+                @Valid @RequestBody ChangePasswordRequest changePasswordRequest,
+                @AuthenticationPrincipal UserDetails userDetails,
+                HttpServletRequest httpServletRequest
+        ) {
+                ChangePasswordResponse response = authService.changePassword(changePasswordRequest, userDetails.getUsername());
+                return ResponseEntity.ok(ApiResponse.of(
+                        HttpStatus.OK,
+                        response.getMessage(),
+                        httpServletRequest.getRequestURI(),
+                        response
+                ));
         }
 
 }
