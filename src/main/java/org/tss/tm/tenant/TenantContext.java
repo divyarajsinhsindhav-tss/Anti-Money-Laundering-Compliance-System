@@ -1,5 +1,7 @@
 package org.tss.tm.tenant;
 
+import java.util.UUID;
+
 public class TenantContext {
     private static final ThreadLocal<String> CURRENT_TENANT = new ThreadLocal<>();
 

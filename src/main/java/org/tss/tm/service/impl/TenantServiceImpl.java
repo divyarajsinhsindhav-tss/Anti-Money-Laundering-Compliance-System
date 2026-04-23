@@ -7,11 +7,13 @@ import org.tss.tm.entity.system.Tenant;
 import org.tss.tm.repository.TenantRepo;
 import org.tss.tm.service.interfaces.FlywayMigration;
 import org.tss.tm.service.interfaces.TenantService;
+import org.tss.tm.tenant.TenantContext;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.UUID;
 
 @Service
 public class TenantServiceImpl implements TenantService {
@@ -71,5 +73,14 @@ public class TenantServiceImpl implements TenantService {
         if (!tenantName.matches("[a-zA-Z0-9_]+")) {
             throw new IllegalArgumentException("tenantName contains invalid schema name");
         }
+    }
+
+    @Override
+    public Tenant getCurrentTenant() {
+        Tenant currentTenant=tenantRepo
+                .findByTenantCode(TenantContext.getCurrentTenant())
+                .orElseThrow(()->new RuntimeException("Tenant not found."));
+
+        return currentTenant;
     }
 }

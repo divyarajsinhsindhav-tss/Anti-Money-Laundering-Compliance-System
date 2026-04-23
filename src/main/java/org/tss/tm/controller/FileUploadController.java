@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.tss.tm.common.enums.JobType;
 import org.tss.tm.entity.common.ValidationError;
 import org.tss.tm.service.interfaces.FileService;
 
@@ -14,22 +15,34 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
-@RequestMapping("/api/files")
+@RequestMapping("/public/api/files")
 public class FileUploadController {
 
     @Autowired
     private FileService fileService;
 
-    @PostMapping("/upload")
-    public ResponseEntity<List<ValidationError>> uploadTransactionFile(
+    @PostMapping("/uploadTransaction")
+    public ResponseEntity<String> uploadTransactionFile(
             @RequestParam("file") MultipartFile newFile) {
 
         try {
-            CompletableFuture<List<ValidationError>> future = fileService.processFile(newFile);
+            CompletableFuture<String> future = fileService.processFile(newFile, JobType.UPLOADING_TRANSACTION);
 
-            List<ValidationError> errors = future.get(); // blocks
+            return ResponseEntity.ok(future.get());
 
-            return ResponseEntity.ok(errors);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @PostMapping("/uploadCustomer")
+    public ResponseEntity<String> uploadCustomerFile(
+            @RequestParam("file") MultipartFile newFile) {
+
+        try {
+            CompletableFuture<String> future = fileService.processFile(newFile, JobType.UPLOADING_CUSTOMER);
+
+            return ResponseEntity.ok(future.get());
 
         } catch (Exception e) {
             throw new RuntimeException(e);
