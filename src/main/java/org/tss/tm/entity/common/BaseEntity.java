@@ -29,6 +29,7 @@ public abstract class BaseEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @lombok.Builder.Default
     @Column(name = "is_deleted", nullable = false)
     private Boolean isDeleted = false;
 }

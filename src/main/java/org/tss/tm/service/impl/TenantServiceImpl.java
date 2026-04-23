@@ -22,6 +22,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.tss.tm.common.constant.TenantConstants;
 import org.tss.tm.mapper.TenantMapper;
 import org.tss.tm.mapper.UserMapper;
+import org.tss.tm.service.interfaces.EmailService;
 import org.tss.tm.tenant.TenantContext;
 
 import javax.sql.DataSource;
@@ -45,6 +46,7 @@ public class TenantServiceImpl implements TenantService {
     private final EntityManager entityManager;
     private final TenantMapper tenantMapper;
     private final UserMapper userMapper;
+    private final EmailService emailService;
 
     @Override
     public TenantResponse createTenant(TenantRegistrationRequest request, String email) throws SQLException {
@@ -88,12 +90,29 @@ public class TenantServiceImpl implements TenantService {
                     registerTenantAdmin(request.getAdminRegistrationRequest(), savedTenant);
                     return null;
                 });
+                
+                // 5. Send Welcome Email
+                sendWelcomeEmail(savedTenant, request.getAdminRegistrationRequest());
+                
             } finally {
                 TenantContext.clear();
             }
         }
 
         return tenantMapper.toResponse(savedTenant);
+    }
+
+    private void sendWelcomeEmail(Tenant tenant, TenantAdminRegistrationRequest adminRequest) {
+        java.util.Map<String, Object> variables = new java.util.HashMap<>();
+        variables.put("tenantName", tenant.getName());
+        variables.put("adminEmail", adminRequest.getEmail());
+
+        emailService.sendHtmlEmail(
+            adminRequest.getEmail(),
+            "Welcome to AML Compliance System - " + tenant.getName(),
+            "tenant-registration",
+            variables
+        );
     }
 
     public TenantUser registerTenantAdmin(TenantAdminRegistrationRequest adminRequest, Tenant tenant) {

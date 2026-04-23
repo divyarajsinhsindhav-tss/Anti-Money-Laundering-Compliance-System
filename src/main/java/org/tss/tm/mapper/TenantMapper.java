@@ -17,6 +17,7 @@ public interface TenantMapper {
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "isDeleted", ignore = true)
     Tenant toEntity(TenantRegistrationRequest request);
 
     TenantResponse toResponse(Tenant tenant);

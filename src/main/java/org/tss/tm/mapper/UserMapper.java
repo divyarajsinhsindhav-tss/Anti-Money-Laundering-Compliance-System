@@ -22,6 +22,7 @@ public interface UserMapper {
     @Mapping(target = "lockedUntil", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "isDeleted", ignore = true)
     TenantUser toEntity(ComplianceOfficerRegistrationRequest request);
 
     @Mapping(target = "userId", ignore = true)
@@ -34,6 +35,7 @@ public interface UserMapper {
     @Mapping(target = "lockedUntil", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "isDeleted", ignore = true)
     TenantUser toEntity(TenantAdminRegistrationRequest request);
 
     UserResponse toResponse(TenantUser user);

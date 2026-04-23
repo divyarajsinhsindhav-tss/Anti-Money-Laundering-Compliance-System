@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to AML Compliance System</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7f9;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background: #ffffff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+        .header {
+            background-color: #1a237e;
+            color: #ffffff;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            letter-spacing: 1px;
+        }
+        .content {
+            padding: 40px;
+        }
+        .welcome-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a237e;
+            margin-bottom: 20px;
+        }
+        .details-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #1a237e;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .detail-row {
+            margin-bottom: 10px;
+        }
+        .detail-label {
+            font-weight: bold;
+            color: #555;
+            width: 120px;
+            display: inline-block;
+        }
+        .cta-button {
+            display: inline-block;
+            background-color: #1a237e;
+            color: #ffffff !important;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .footer {
+            background-color: #f1f3f5;
+            color: #777;
+            padding: 20px;
+            text-align: center;
+            font-size: 12px;
+        }
+        .highlight {
+            color: #d32f2f;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AML Compliance System</h1>
+        </div>
+        <div class="content">
+            <p class="welcome-text">Welcome aboard, <span th:text="${tenantName}">Bank Name</span>!</p>
+            <p>Your organization account has been successfully registered and your dedicated workspace is ready.</p>
+            
+            <div class="details-box">
+                <div class="detail-row">
+                    <span class="detail-label">Organization Name:</span>
+                    <span th:text="${tenantCode}">ORG</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Organization Admin Email:</span>
+                    <span th:text="${adminEmail}">admin@bank.com</span>
+                </div>
+            </div>
+
+            <p>You can now log in to the system using the credentials you provided during registration.</p>
+
+            <p style="margin-top: 30px; font-size: 14px; color: #666;">
+                <span class="highlight">Important:</span> Please ensure you complete your compliance profile setup upon your first login.
+            </p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2026 TSS AML Compliance Solutions. All rights reserved.</p>
+            <p>This is an automated message, please do not reply.</p>
+        </div>
+    </div>
+</body>
+</html>
