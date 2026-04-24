@@ -1,14 +1,14 @@
 package org.tss.tm.service.impl;
 
 import jakarta.persistence.EntityManager;
-import lombok.AllArgsConstructor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.tss.tm.common.enums.UserRole;
 import org.tss.tm.dto.tenant.request.TenantAdminRegistrationRequest;
 import org.tss.tm.dto.tenant.request.TenantRegistrationRequest;
+import org.tss.tm.dto.tenant.response.TenantAvailableResponse;
 import org.tss.tm.dto.tenant.response.TenantResponse;
+import org.tss.tm.dto.tenant.response.TenantUserResponse;
 import org.tss.tm.entity.system.SystemAdmin;
 import org.tss.tm.entity.system.Tenant;
 import org.tss.tm.entity.tenant.TenantUser;
@@ -30,7 +30,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -115,6 +114,14 @@ public class TenantServiceImpl implements TenantService {
         );
     }
 
+    @Override
+    public TenantAvailableResponse tenantAvailable(String tenantCode) {
+        boolean isExist = tenantRepo.existsTenantByTenantCode(tenantCode);
+        return TenantAvailableResponse.builder()
+                .isAvailable(isExist)
+                .build();
+    }
+
     public TenantUser registerTenantAdmin(TenantAdminRegistrationRequest adminRequest, Tenant tenant) {
         TenantUser user = userMapper.toEntity(adminRequest);
         user.setTenant(tenant);
@@ -126,6 +133,7 @@ public class TenantServiceImpl implements TenantService {
         entityManager.refresh(savedUser);
         return savedUser;
     }
+
 
     @Override
     public Tenant getTenantByName(String tenantName) {

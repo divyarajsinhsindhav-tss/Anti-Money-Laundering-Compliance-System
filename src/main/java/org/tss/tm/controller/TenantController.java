@@ -9,9 +9,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.tss.tm.common.response.ApiResponse;
-import org.tss.tm.dto.tenant.request.TenantAdminRegistrationRequest;
 import org.tss.tm.dto.tenant.request.TenantRegistrationRequest;
+import org.tss.tm.dto.tenant.response.TenantAvailableResponse;
 import org.tss.tm.dto.tenant.response.TenantResponse;
+import org.tss.tm.dto.tenant.response.TenantUserResponse;
 import org.tss.tm.service.interfaces.TenantService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -42,6 +43,20 @@ public class TenantController {
                         "Tenant registered successfully",
                         httpServletRequest.getRequestURI(),
                         response));
+    }
+
+    @GetMapping("/check-tenant-available")
+    public ResponseEntity<ApiResponse<TenantAvailableResponse>> checkTenantAvailable(
+            @RequestParam("tenantCode") String tenantCode,
+            HttpServletRequest httpServletRequest
+    ) {
+        TenantAvailableResponse response = tenantService.tenantAvailable(tenantCode);
+        return ResponseEntity.ok(ApiResponse.of(
+                HttpStatus.OK,
+                "Tenant availablity checked successfully.",
+                httpServletRequest.getRequestURI(),
+                response
+        ));
     }
 
     @GetMapping

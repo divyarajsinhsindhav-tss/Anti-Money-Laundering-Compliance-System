@@ -5,6 +5,7 @@ import org.mapstruct.Mapping;
 import org.tss.tm.dto.tenant.request.TenantAdminRegistrationRequest;
 import org.tss.tm.dto.user.request.ComplianceOfficerRegistrationRequest;
 import org.tss.tm.dto.user.response.UserResponse;
+import org.tss.tm.dto.tenant.response.TenantUserResponse;
 import org.tss.tm.entity.tenant.TenantUser;
 
 import java.util.List;
@@ -39,6 +40,12 @@ public interface UserMapper {
     TenantUser toEntity(TenantAdminRegistrationRequest request);
 
     UserResponse toResponse(TenantUser user);
+
+    @Mapping(target = "name", source = "tenant.name")
+    @Mapping(target = "displayName", source = "tenant.displayName")
+    @Mapping(target = "tenantCode", source = "tenant.tenantCode")
+    @Mapping(target = "email", source = "user.email")
+    TenantUserResponse toTenantUserResponse(TenantUser user);
 
     List<UserResponse> toResponseList(List<TenantUser> users);
 }

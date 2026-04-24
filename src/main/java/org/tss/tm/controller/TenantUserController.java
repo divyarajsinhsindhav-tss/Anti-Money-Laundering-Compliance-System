@@ -7,11 +7,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.AuthenticatedPrincipal;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.*;
+
 import org.tss.tm.common.response.ApiResponse;
+import org.tss.tm.dto.tenant.response.TenantUserResponse;
 import org.tss.tm.dto.user.request.ComplianceOfficerRegistrationRequest;
 import org.tss.tm.dto.user.response.UserResponse;
 import org.tss.tm.service.interfaces.TenantUserService;
@@ -41,5 +43,20 @@ public class TenantUserController {
                 "Compliance officer registered successfully",
                 httpServletRequest.getRequestURI(),
                 response));
+    }
+
+    @GetMapping("/get-tenant-basic-details")
+    @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
+    public ResponseEntity<ApiResponse<TenantUserResponse>> getTenantBasicDetails(
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest httpServletRequest
+    ) {
+        TenantUserResponse response = tenantUserService.getTenantBasicDetails(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.of(
+                HttpStatus.OK,
+                "Tenant details fetched successfully",
+                httpServletRequest.getRequestURI(),
+                response
+        ));
     }
 }

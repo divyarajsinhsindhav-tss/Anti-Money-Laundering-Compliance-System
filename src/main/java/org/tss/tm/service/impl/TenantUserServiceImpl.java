@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.tss.tm.common.enums.UserRole;
+import org.tss.tm.dto.tenant.response.TenantUserResponse;
 import org.tss.tm.dto.user.request.ComplianceOfficerRegistrationRequest;
 import org.tss.tm.dto.user.response.UserResponse;
 import org.tss.tm.entity.system.Tenant;
@@ -52,4 +53,12 @@ public class TenantUserServiceImpl implements TenantUserService {
         return userMapper.toResponse(savedUser);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public TenantUserResponse getTenantBasicDetails(String userEmail) {
+        TenantUser user = tenantUserRepo.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + userEmail));
+
+        return userMapper.toTenantUserResponse(user);
+    }
 }
