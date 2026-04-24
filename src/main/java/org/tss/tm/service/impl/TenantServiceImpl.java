@@ -27,11 +27,13 @@ import org.tss.tm.service.interfaces.EmailService;
 import org.tss.tm.tenant.TenantContext;
 import org.tss.tm.exception.BusinessRuleException;
 import org.tss.tm.exception.ResourceNotFoundException;
+import org.tss.tm.tenant.TenantContext;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.UUID;
 import java.util.List;
 
 @Service
@@ -70,7 +72,7 @@ public class TenantServiceImpl implements TenantService {
             log.error("Failed to create schema for tenant: {}", schemaName, e);
             throw new BusinessRuleException("Failed to initialize tenant environment: " + e.getMessage(), "SCHEMA_CREATION_FAILED");
         }
-        
+
         // 2. Save Tenant Record (Transactional)
         Tenant savedTenant = transactionTemplate.execute(status -> {
             SystemAdmin admin = systemAdminRepo.findByEmail(email)
@@ -96,10 +98,10 @@ public class TenantServiceImpl implements TenantService {
                     registerTenantAdmin(request.getAdminRegistrationRequest(), savedTenant);
                     return null;
                 });
-                
+
                 // 5. Send Welcome Email
                 sendWelcomeEmail(savedTenant, request.getAdminRegistrationRequest());
-                
+
             } finally {
                 TenantContext.clear();
             }
@@ -169,4 +171,12 @@ public class TenantServiceImpl implements TenantService {
         }
     }
 
+    @Override
+    public Tenant getCurrentTenant() {
+        Tenant currentTenant=tenantRepo
+                .findByTenantCode(TenantContext.getCurrentTenant())
+                .orElseThrow(()->new RuntimeException("Tenant not found."));
+
+        return currentTenant;
+    }
 }

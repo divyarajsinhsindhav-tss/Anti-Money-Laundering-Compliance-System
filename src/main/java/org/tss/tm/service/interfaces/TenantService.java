@@ -21,5 +21,6 @@ public interface TenantService {
     List<TenantResponse> getAllTenants();
 
     void migrateAllTenants();
+    Tenant getCurrentTenant();
 }
 

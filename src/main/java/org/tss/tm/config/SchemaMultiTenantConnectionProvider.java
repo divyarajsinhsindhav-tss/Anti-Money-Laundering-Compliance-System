@@ -37,12 +37,36 @@ public class SchemaMultiTenantConnectionProvider implements MultiTenantConnectio
         return connection;
     }
 
+//    @Override
+//    public Connection getConnection(Object tenantIdentifier) throws SQLException {
+//        log.debug("Switching to schema: {}", tenantIdentifier);
+//        final Connection connection = getAnyConnection();
+//
+//        // THE FIX: Set search path to look at Tenant FIRST, and Public SECOND.
+//        try (java.sql.Statement stmt = connection.createStatement()) {
+//            stmt.execute("SET search_path TO " + tenantIdentifier + ", public");
+//        }
+//
+//        return connection;
+//    }
+
     @Override
     public void releaseConnection(Object tenantIdentifier, Connection connection) throws SQLException {
         log.debug("Releasing connection for schema: {}. Resetting to public.", tenantIdentifier);
         connection.setSchema("public");
         releaseAnyConnection(connection);
     }
+
+//    @Override
+//    public void releaseConnection(Object tenantIdentifier, Connection connection) throws SQLException {
+//        log.debug("Releasing connection for schema: {}. Resetting to public.", tenantIdentifier);
+//
+//        try (java.sql.Statement stmt = connection.createStatement()) {
+//            stmt.execute("SET search_path TO public");
+//        }
+//
+//        releaseAnyConnection(connection);
+//    }
 
     @Override
     public boolean supportsAggressiveRelease() {
