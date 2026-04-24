@@ -27,11 +27,11 @@ public class JobServiceImpl implements JobService {
         JobExecution newJob = new JobExecution();
         newJob.setJobType(type);
         newJob.setStatus(JobStatus.PENDING);
-//        newJob.setTenant(tenantService.getCurrentTenant());
+        newJob.setTenant(tenantService.getCurrentTenant());
 //        CHANGE THIS AT PRODUCTION-----------
 //        TESTING ONLY:
-        Tenant tempTenant=tenantRepo.getReferenceById(UUID.fromString("c77290af-8631-422b-a9a6-0d4ebac6ced9"));
-        newJob.setTenant(tempTenant);
+//        Tenant tempTenant=tenantRepo.getReferenceById(UUID.fromString("c77290af-8631-422b-a9a6-0d4ebac6ced9"));
+//        newJob.setTenant(tempTenant);
 
 //        ------------------
 

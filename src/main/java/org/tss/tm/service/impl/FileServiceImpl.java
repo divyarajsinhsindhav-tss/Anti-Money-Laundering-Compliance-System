@@ -51,8 +51,8 @@ public class FileServiceImpl implements FileService {
         try {
             newFile.transferTo(file);
 
-//            UUID currentTenantId= tenantService.getCurrentTenant().getTenantId();
-            UUID currentTenantId = UUID.fromString("c77290af-8631-422b-a9a6-0d4ebac6ced9");
+            UUID currentTenantId= tenantService.getCurrentTenant().getTenantId();
+//            UUID currentTenantId = UUID.fromString("c77290af-8631-422b-a9a6-0d4ebac6ced9");
 //            WE HAVE TO CHANGE THE UUID RANDOM and CREATENEWJOB UUID--------
             log.info("Java File Processing Completed");
 
