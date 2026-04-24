@@ -17,6 +17,8 @@ import org.tss.tm.mapper.UserMapper;
 import org.tss.tm.repository.TenantRepo;
 import org.tss.tm.repository.TenantUserRepo;
 import org.tss.tm.service.interfaces.TenantUserService;
+import org.tss.tm.exception.BusinessRuleException;
+import org.tss.tm.exception.ResourceNotFoundException;
 
 @Service
 @Slf4j
@@ -35,10 +37,10 @@ public class TenantUserServiceImpl implements TenantUserService {
         log.info("Registering compliance officer for tenant schema: {}", currentTenantSchema);
 
         Tenant tenant = tenantRepo.findBySchemaName(currentTenantSchema)
-                .orElseThrow(() -> new IllegalArgumentException("Tenant not found for schema: " + currentTenantSchema));
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", currentTenantSchema));
 
         if (tenantUserRepo.findByEmail(request.getEmail()).isPresent()) {
-            throw new IllegalArgumentException("User with email " + request.getEmail() + " already exists in this tenant");
+            throw new BusinessRuleException("User with email " + request.getEmail() + " already exists in this tenant", "USER_ALREADY_EXISTS");
         }
 
         TenantUser user = userMapper.toEntity(request);
@@ -57,7 +59,7 @@ public class TenantUserServiceImpl implements TenantUserService {
     @Transactional(readOnly = true)
     public TenantUserResponse getTenantBasicDetails(String userEmail) {
         TenantUser user = tenantUserRepo.findByEmail(userEmail)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + userEmail));
+                .orElseThrow(() -> new ResourceNotFoundException("User", userEmail));
 
         return userMapper.toTenantUserResponse(user);
     }

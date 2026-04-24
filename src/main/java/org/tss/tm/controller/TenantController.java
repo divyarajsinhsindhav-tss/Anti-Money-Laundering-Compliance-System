@@ -34,7 +34,7 @@ public class TenantController {
     public ResponseEntity<ApiResponse<TenantResponse>> registerTenant(
             @Valid @RequestBody TenantRegistrationRequest request,
             @AuthenticationPrincipal UserDetails userDetails,
-            HttpServletRequest httpServletRequest) throws SQLException {
+            HttpServletRequest httpServletRequest) {
         log.info("Received request to register tenant: {} from user: {}", request.getName(), userDetails.getUsername());
         TenantResponse response = tenantService.createTenant(request, userDetails.getUsername());
         return ResponseEntity.status(HttpStatus.CREATED)

@@ -11,7 +11,7 @@ import java.util.List;
 import java.sql.SQLException;
 
 public interface TenantService {
-    TenantResponse createTenant(TenantRegistrationRequest request, String email) throws SQLException;
+    TenantResponse createTenant(TenantRegistrationRequest request, String email);
 
     TenantAvailableResponse tenantAvailable(String tenantCode);
 

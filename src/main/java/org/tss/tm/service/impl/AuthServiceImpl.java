@@ -26,6 +26,8 @@ import org.tss.tm.security.CustomUserDetails;
 import org.tss.tm.security.JwtTokenProvider;
 import org.tss.tm.service.interfaces.AuthService;
 import org.tss.tm.tenant.TenantContext;
+import org.tss.tm.exception.BusinessRuleException;
+import org.tss.tm.exception.ResourceNotFoundException;
 
 import java.util.function.Consumer;
 
@@ -77,7 +79,7 @@ public class AuthServiceImpl implements AuthService {
 
         } catch (BadCredentialsException e) {
             log.warn("Login failed for user: {} - Bad Credentials", loginRequest.getEmail());
-            throw new RuntimeException("Invalid email or password");
+            throw new BusinessRuleException("Invalid email or password", "INVALID_CREDENTIALS");
         } catch (Exception e) {
             log.error("Login error for user: {}", loginRequest.getEmail(), e);
             throw new RuntimeException(e.getMessage());
@@ -92,14 +94,14 @@ public class AuthServiceImpl implements AuthService {
         String currentTenant = TenantContext.getCurrentTenant();
 
         if (currentTenant == null) {
-            throw new RuntimeException("Tenant not resolved");
+            throw new BusinessRuleException("Tenant not resolved", "TENANT_NOT_FOUND");
         }
 
         try {
             if (TenantConstants.DEFAULT_TENANT.equals(currentTenant)) {
 
                 SystemAdmin sysAdmin = systemAdminRepo.findByEmail(email)
-                        .orElseThrow(() -> new RuntimeException("SystemAdmin not found for email: " + email));
+                        .orElseThrow(() -> new ResourceNotFoundException("SystemAdmin", email));
 
                 validateAndUpdatePassword(
                         sysAdmin.getPasswordHash(),
@@ -113,7 +115,7 @@ public class AuthServiceImpl implements AuthService {
 
             else {
                 TenantUser tenantUser = tenantUserRepo.findByEmail(email)
-                        .orElseThrow(() -> new RuntimeException("TenantUser not found for email: " + email));
+                        .orElseThrow(() -> new ResourceNotFoundException("TenantUser", email));
 
                 validateAndUpdatePassword(
                         tenantUser.getPasswordHash(),
@@ -140,11 +142,11 @@ public class AuthServiceImpl implements AuthService {
             Consumer<String> passwordSetter) {
 
         if (!passwordEncoder.matches(oldPassword, currentPasswordHash)) {
-            throw new RuntimeException("Old password is incorrect");
+            throw new BusinessRuleException("Old password is incorrect", "INVALID_OLD_PASSWORD");
         }
 
         if (passwordEncoder.matches(newPassword, currentPasswordHash)) {
-            throw new RuntimeException("New password cannot be same as old password");
+            throw new BusinessRuleException("New password cannot be same as old password", "SAME_PASSWORD");
         }
 
         passwordSetter.accept(passwordEncoder.encode(newPassword));

@@ -2,6 +2,7 @@ package org.tss.tm.service.impl;
 
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.tss.tm.common.enums.UserRole;
 import org.tss.tm.dto.tenant.request.TenantAdminRegistrationRequest;
@@ -24,6 +25,8 @@ import org.tss.tm.mapper.TenantMapper;
 import org.tss.tm.mapper.UserMapper;
 import org.tss.tm.service.interfaces.EmailService;
 import org.tss.tm.tenant.TenantContext;
+import org.tss.tm.exception.BusinessRuleException;
+import org.tss.tm.exception.ResourceNotFoundException;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -33,6 +36,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class TenantServiceImpl implements TenantService {
 
     private final DataSource dataSource;
@@ -48,12 +52,12 @@ public class TenantServiceImpl implements TenantService {
     private final EmailService emailService;
 
     @Override
-    public TenantResponse createTenant(TenantRegistrationRequest request, String email) throws SQLException {
+    public TenantResponse createTenant(TenantRegistrationRequest request, String email) {
         String tenantCode = request.getTenantCode();
         validateTenantName(tenantCode);
 
         if (tenantRepo.findByName(request.getName()).isPresent()) {
-            throw new IllegalArgumentException("Tenant with name " + request.getName() + " already exists");
+            throw new BusinessRuleException("Tenant with name " + request.getName() + " already exists", "TENANT_ALREADY_EXISTS");
         }
 
         String schemaName = TenantConstants.SCHEMA_PREFIX + tenantCode.toLowerCase();
@@ -62,12 +66,15 @@ public class TenantServiceImpl implements TenantService {
         try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement()) {
             stmt.execute("CREATE SCHEMA IF NOT EXISTS " + schemaName);
+        } catch (SQLException e) {
+            log.error("Failed to create schema for tenant: {}", schemaName, e);
+            throw new BusinessRuleException("Failed to initialize tenant environment: " + e.getMessage(), "SCHEMA_CREATION_FAILED");
         }
         
         // 2. Save Tenant Record (Transactional)
         Tenant savedTenant = transactionTemplate.execute(status -> {
             SystemAdmin admin = systemAdminRepo.findByEmail(email)
-                    .orElseThrow(() -> new IllegalArgumentException("Logged-in admin not found in system: " + email));
+                    .orElseThrow(() -> new ResourceNotFoundException("SystemAdmin", email));
 
             Tenant tenant = tenantMapper.toEntity(request);
             tenant.setSchemaName(schemaName);
@@ -138,7 +145,7 @@ public class TenantServiceImpl implements TenantService {
     @Override
     public Tenant getTenantByName(String tenantName) {
         return tenantRepo.findByName(tenantName)
-                .orElseThrow(() -> new IllegalArgumentException("Tenant not found: " + tenantName));
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantName));
     }
 
     @Override
@@ -155,10 +162,10 @@ public class TenantServiceImpl implements TenantService {
 
     private void validateTenantName(String tenantName) {
         if (tenantName == null) {
-            throw new IllegalArgumentException("tenantName is null");
+            throw new BusinessRuleException("tenantName is null", "INVALID_TENANT_NAME");
         }
         if (!tenantName.matches("[a-zA-Z0-9_]+")) {
-            throw new IllegalArgumentException("tenantName contains invalid characters");
+            throw new BusinessRuleException("tenantName contains invalid characters", "INVALID_TENANT_NAME");
         }
     }
 
