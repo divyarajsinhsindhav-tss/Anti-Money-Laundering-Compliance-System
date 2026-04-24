@@ -9,12 +9,14 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.tss.tm.common.enums.JobStatus;
 import org.tss.tm.service.interfaces.JobService;
+import org.tss.tm.tenant.TenantContext;
 
 import javax.sql.DataSource;
 import java.io.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.UUID;
 
 @Service
@@ -27,9 +29,8 @@ public class FileProcessor {
 
 
     @Async
-    public void loadTransactionCsv(UUID jobId, File file, UUID tenantId) {
+    public void loadTransactionCsv(UUID jobId, File file, UUID tenantId, String tenantSchemaName) {
         jobService.updateJobStatus(jobId, JobStatus.RUNNING);
-
         Connection conn = null;
 
         String createTempTableSql =
@@ -48,8 +49,13 @@ public class FileProcessor {
         try (InputStream inputStream =
                      new BufferedInputStream(new FileInputStream(file))) {
 
+
             conn = dataSource.getConnection();
             conn.setAutoCommit(false);
+
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("SET search_path TO \"" + tenantSchemaName + "\", public");
+            }
 
             try (PreparedStatement psCreate = conn.prepareStatement(createTempTableSql)) {
                 psCreate.execute();
@@ -94,12 +100,14 @@ public class FileProcessor {
 
             log.info("File ingestion completed for jobId={}", jobId);
 
+
         } catch (Exception e) {
 
             if (conn != null) {
                 try {
                     conn.rollback();
-                } catch (SQLException ignored) {}
+                } catch (SQLException ignored) {
+                }
             }
 
             jobService.updateJobStatus(jobId, JobStatus.FAILED);
@@ -109,8 +117,12 @@ public class FileProcessor {
             log.info("CSV Loader Function Finished.");
             if (conn != null) {
                 try {
+                    try (Statement stmt = conn.createStatement()) {
+                        stmt.execute("SET search_path TO public");
+                    }
                     conn.close();
-                } catch (SQLException ignored) {}
+                } catch (SQLException ignored) {
+                }
             }
 
             if (file.exists()) file.delete();
@@ -118,7 +130,7 @@ public class FileProcessor {
     }
 
     @Async
-    public void loadCustomerFile(UUID jobId, File file, UUID tenantId){
+    public void loadCustomerFile(UUID jobId, File file, UUID tenantId, String tenantSchemaName) {
         jobService.updateJobStatus(jobId, JobStatus.RUNNING);
 
         Connection conn = null;
@@ -132,7 +144,7 @@ public class FileProcessor {
 
         String copySql =
                 "COPY temp_staging (" +
-                        "cif, first_name, middle_name, last_name, dob, income, account_number, account_type, opened_at"+
+                        "cif, first_name, middle_name, last_name, dob, income, account_number, account_type, opened_at" +
                         ") FROM STDIN WITH (FORMAT csv, HEADER true)";
 
         try (InputStream inputStream =
@@ -140,6 +152,10 @@ public class FileProcessor {
 
             conn = dataSource.getConnection();
             conn.setAutoCommit(false);
+
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("SET search_path TO \"" + tenantSchemaName + "\", public");
+            }
 
             try (PreparedStatement psCreate = conn.prepareStatement(createTempTableSql)) {
                 psCreate.execute();
@@ -187,7 +203,8 @@ public class FileProcessor {
             if (conn != null) {
                 try {
                     conn.rollback();
-                } catch (SQLException ignored) {}
+                } catch (SQLException ignored) {
+                }
             }
 
             jobService.updateJobStatus(jobId, JobStatus.FAILED);
@@ -197,8 +214,12 @@ public class FileProcessor {
             log.info("CSV Loader Function Finished.");
             if (conn != null) {
                 try {
+                    try (Statement stmt = conn.createStatement()) {
+                        stmt.execute("SET search_path TO public");
+                    }
                     conn.close();
-                } catch (SQLException ignored) {}
+                } catch (SQLException ignored) {
+                }
             }
 
             if (file.exists()) file.delete();

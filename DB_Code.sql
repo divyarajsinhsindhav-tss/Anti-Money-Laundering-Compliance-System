@@ -196,7 +196,8 @@ BEGIN
     INSERT INTO financial_transaction (
         tenant_id, batch_id, txn_no, account_id, amount,
         txn_type, direction, counterparty_account_no,
-        counterparty_bank_ifsc, txn_timestamp, country_code
+        counterparty_bank_ifsc, txn_timestamp, country_code,
+		created_at, updated_at, is_deleted
     )
     SELECT
         p_tenant_id,
@@ -209,7 +210,8 @@ BEGIN
         counterparty_account_no, 
         counterparty_bank_ifsc, 
         txn_timestamp::TIMESTAMP, 
-        country_code
+        country_code,
+		CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false
     FROM evaluated_data
 	
     WHERE (cardinality(critical_array) = 0 OR critical_array IS NULL)

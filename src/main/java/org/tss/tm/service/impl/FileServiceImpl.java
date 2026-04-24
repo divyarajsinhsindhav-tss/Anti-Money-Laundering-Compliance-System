@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.tss.tm.common.constant.FileConstants;
 import org.tss.tm.common.enums.JobStatus;
 import org.tss.tm.common.enums.JobType;
+import org.tss.tm.entity.system.Tenant;
 import org.tss.tm.service.interfaces.FileService;
 
 import org.tss.tm.service.interfaces.JobService;
@@ -51,17 +52,20 @@ public class FileServiceImpl implements FileService {
         try {
             newFile.transferTo(file);
 
-            UUID currentTenantId= tenantService.getCurrentTenant().getTenantId();
+            Tenant currentTenant = tenantService.getCurrentTenant();
+            UUID currentTenantId = currentTenant.getTenantId();
+            String tenantSchema = currentTenant.getSchemaName();
+
 //            UUID currentTenantId = UUID.fromString("c77290af-8631-422b-a9a6-0d4ebac6ced9");
 //            WE HAVE TO CHANGE THE UUID RANDOM and CREATENEWJOB UUID--------
             log.info("Java File Processing Completed");
 
             if (type.equals(JobType.UPLOADING_TRANSACTION)) {
                 validateHeader(file, FileConstants.expectedTransactionHeader);
-                fileProcessor.loadTransactionCsv(jobId, file, currentTenantId);
+                fileProcessor.loadTransactionCsv(jobId, file, currentTenantId, tenantSchema);
             } else if (type.equals(JobType.UPLOADING_CUSTOMER)) {
                 validateHeader(file, FileConstants.expectedCustomerHeader);
-                fileProcessor.loadCustomerFile(jobId, file, currentTenantId);
+                fileProcessor.loadCustomerFile(jobId, file, currentTenantId, tenantSchema);
             } else {
                 throw new IllegalArgumentException("Unsupported Job Type");
             }
