@@ -45,6 +45,7 @@ public class StartupMigrationRunner {
                 .baselineOnMigrate(true)
                 .load();
 
+        flywayPublic.repair();
         flywayPublic.migrate();
     }
 

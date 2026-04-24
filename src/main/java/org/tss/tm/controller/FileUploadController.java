@@ -2,6 +2,7 @@ package org.tss.tm.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -15,18 +16,19 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
-@RequestMapping("/public/api/files")
+@RequestMapping("/api/v1/file")
 public class FileUploadController {
 
     @Autowired
     private FileService fileService;
 
     @PostMapping("/uploadTransaction")
+    @PreAuthorize("hasRole('BANK_ADMIN')")
     public ResponseEntity<String> uploadTransactionFile(
             @RequestParam("file") MultipartFile newFile) {
 
         try {
-            CompletableFuture<String> future = fileService.processFile(newFile, JobType.UPLOADING_TRANSACTION);
+            CompletableFuture<String> future = fileService.processFile(newFile, JobType.FILE_UPLOAD_TRANSACTION);
 
             return ResponseEntity.ok(future.get());
 
@@ -36,11 +38,12 @@ public class FileUploadController {
     }
 
     @PostMapping("/uploadCustomer")
+    @PreAuthorize("hasRole('BANK_ADMIN')")
     public ResponseEntity<String> uploadCustomerFile(
             @RequestParam("file") MultipartFile newFile) {
 
         try {
-            CompletableFuture<String> future = fileService.processFile(newFile, JobType.UPLOADING_CUSTOMER);
+            CompletableFuture<String> future = fileService.processFile(newFile, JobType.FILE_UPLOAD_CUSTOMER);
 
             return ResponseEntity.ok(future.get());
 

@@ -173,8 +173,11 @@ public class TenantServiceImpl implements TenantService {
 
     @Override
     public Tenant getCurrentTenant() {
+        String str="smit";
+        str=TenantContext.getCurrentTenant();
+        log.info("Current tenant: {}", str);
         Tenant currentTenant=tenantRepo
-                .findByTenantCode(TenantContext.getCurrentTenant())
+                .findTenantBySchemaName(TenantContext.getCurrentTenant())
                 .orElseThrow(()->new RuntimeException("Tenant not found."));
 
         return currentTenant;

@@ -60,10 +60,10 @@ public class FileServiceImpl implements FileService {
 //            WE HAVE TO CHANGE THE UUID RANDOM and CREATENEWJOB UUID--------
             log.info("Java File Processing Completed");
 
-            if (type.equals(JobType.UPLOADING_TRANSACTION)) {
+            if (type.equals(JobType.FILE_UPLOAD_TRANSACTION)) {
                 validateHeader(file, FileConstants.expectedTransactionHeader);
                 fileProcessor.loadTransactionCsv(jobId, file, currentTenantId, tenantSchema);
-            } else if (type.equals(JobType.UPLOADING_CUSTOMER)) {
+            } else if (type.equals(JobType.FILE_UPLOAD_CUSTOMER)) {
                 validateHeader(file, FileConstants.expectedCustomerHeader);
                 fileProcessor.loadCustomerFile(jobId, file, currentTenantId, tenantSchema);
             } else {
