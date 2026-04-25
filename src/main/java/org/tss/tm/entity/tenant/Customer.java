@@ -23,10 +23,6 @@ public class Customer extends BaseEntity {
     @Column(name = "customer_id")
     private UUID customerId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tenant_id", nullable = false)
-    private Tenant tenant;
-
     @Column(name = "cif", nullable = false, length = 50)
     private String cif;
 

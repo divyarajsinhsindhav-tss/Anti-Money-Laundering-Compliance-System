@@ -24,10 +24,6 @@ public class AmlCase extends BaseEntity {
     @Column(name = "case_id")
     private UUID caseId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tenant_id", nullable = false)
-    private Tenant tenant;
-
     @Column(name = "case_code", nullable = false, length = 20)
     private String caseCode;
 

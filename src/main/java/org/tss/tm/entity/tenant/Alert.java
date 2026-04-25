@@ -5,12 +5,10 @@ import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.tss.tm.entity.common.BaseEntity;
-import org.tss.tm.entity.system.JobExecution;
-import org.tss.tm.entity.system.Rule;
-import org.tss.tm.entity.system.Scenario;
-import org.tss.tm.entity.system.Tenant;
+import org.tss.tm.entity.system.*;
 import org.tss.tm.common.enums.AlertStatus;
 
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -27,35 +25,26 @@ public class Alert extends BaseEntity {
     @Column(name = "alert_id")
     private UUID alertId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tenant_id", nullable = false)
-    private Tenant tenant;
-
     @Column(name = "alert_code", nullable = false, unique = true)
     private String alertCode;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "job_id", nullable = false)
-    private JobExecution job;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "rule_id", nullable = false)
-    private Rule rule;
-
-    @Column(name = "rule_param_version", nullable = false)
-    private Integer ruleParamVersion;
+    private JobRecord job;
+//
+//    @Column(name = "rule_param_version", nullable = false)
+//    private Integer ruleParamVersion;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "scenario_id", nullable = false)
     private Scenario scenario;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "txn_id", nullable = false)
-    private FinancialTransaction transaction;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
+
+    @OneToMany(mappedBy = "alert", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AlertInfo> alertInfos;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)

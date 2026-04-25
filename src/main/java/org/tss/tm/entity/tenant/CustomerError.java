@@ -27,9 +27,6 @@ public class CustomerError {
     @Column(name = "cif")
     private String cif;
 
-    @Column(name = "staging_id")
-    private Long stagingId;
-
     @Column(name = "raw_row", columnDefinition = "TEXT")
     private String rawRow;
 

@@ -27,9 +27,6 @@ public class TransactionError {
     @Column(name = "txn_no")
     private String txnNo;
 
-    @Column(name = "staging_id")
-    private Long stagingId;
-
     @Column(name = "raw_row", columnDefinition = "TEXT")
     private String rawRow;
 

@@ -25,10 +25,6 @@ public class TenantUser extends BaseEntity {
     @Column(name = "user_id")
     private UUID userId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tenant_id", nullable = false)
-    private Tenant tenant;
-
     @Column(name = "user_code", nullable = false, length = 20)
     private String userCode;
 
