@@ -172,11 +172,11 @@ BEGIN
             ], NULL) AS critical_array,
 
             ARRAY_REMOVE(ARRAY[
-                CASE WHEN s.txn_type NOT IN ('DEBIT','CREDIT','REVERSAL') THEN 'INVALID_TXN_TYPE' END,
+                CASE WHEN s.txn_type NOT IN ('NEFT', 'RTGS', 'IMPS', 'UPI', 'CASH', 'CHEQUE', 'INTERNAL', 'WIRE') THEN 'INVALID_TXN_TYPE' END,
                 CASE WHEN s.direction NOT IN ('IN','OUT') THEN 'INVALID_DIRECTION' END,
                 CASE WHEN s.country_code IS NULL OR LENGTH(s.country_code) <> 2 THEN 'INVALID_COUNTRY_CODE' END,
                 CASE WHEN pg_input_is_valid(s.amount, 'numeric') = false THEN 'INVALID_AMOUNT' END,
-                CASE WHEN pg_input_is_valid(s.account_number, 'bigint') = false THEN 'INVALID_ACCOUNT_NUMBER' END,
+                CASE WHEN s.account_number IS NULL OR s.account_number !~ '^[0-9]{6,30}$' THEN 'INVALID_ACCOUNT_NUMBER' END,
                 CASE WHEN pg_input_is_valid(s.txn_timestamp, 'timestamp') = false THEN 'INVALID_TIMESTAMP' END
             ], NULL) AS warning_array
             
@@ -255,7 +255,7 @@ BEGIN
             ARRAY_REMOVE(ARRAY[
                 CASE WHEN s.cif IS NULL OR TRIM(s.cif) = '' THEN 'MISSING_CIF' END,
                 CASE WHEN s.account_number IS NULL OR TRIM(s.account_number) = '' THEN 'MISSING_ACCOUNT_NUMBER' END,
-				CASE WHEN NOT pg_input_is_valid(s.account_number, 'bigint') THEN 'INVALID_ACCOUNT_NUMBER_FORMAT' END,
+				CASE WHEN s.account_number !~ '^[0-9]{6,30}$' THEN 'INVALID_ACCOUNT_NUMBER_FORMAT' END,
                 CASE WHEN s.first_name IS NULL OR TRIM(s.first_name) = '' 
                        OR s.last_name IS NULL OR TRIM(s.last_name) = '' THEN 'MISSING_FIRST_OR_LAST_NAME' END,
                 CASE WHEN s.income IS NULL OR TRIM(s.income) = '' THEN 'MISSING_INCOME' END

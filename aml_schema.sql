@@ -499,7 +499,7 @@ CREATE TABLE account (
     customer_id    UUID              NOT NULL REFERENCES public.customer(customer_id),
 
     account_number VARCHAR(30)       NOT NULL
-        CHECK (account_number ~ '^[A-Z0-9]{6,30}$'),
+        CHECK (account_number ~ '^[0-9]{6,30}$'),
     account_type   account_type_enum NOT NULL,
 
     is_deleted     BOOLEAN           NOT NULL DEFAULT FALSE,
@@ -533,7 +533,7 @@ CREATE TABLE financial_transaction (
     direction                direction_enum NOT NULL,
 
     counterparty_account_no  VARCHAR(30)
-        CHECK (counterparty_account_no IS NULL OR counterparty_account_no ~ '^[A-Z0-9]{4,30}$'),
+        CHECK (counterparty_account_no IS NULL OR counterparty_account_no ~ '^[0-9]{4,30}$'),
     counterparty_bank_ifsc   VARCHAR(11)
         CHECK (counterparty_bank_ifsc IS NULL OR counterparty_bank_ifsc ~ '^[A-Z]{4}0[A-Z0-9]{6}$'),
 
