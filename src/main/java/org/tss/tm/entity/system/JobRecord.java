@@ -17,7 +17,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class JobExecution {
+public class JobRecord {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

@@ -29,10 +29,6 @@ public class ScenarioParam {
     private UUID scenarioParamId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tenant_id", nullable = false)
-    private Tenant tenant;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "scenario_id", nullable = false)
     private Scenario scenario;
 
@@ -57,12 +53,14 @@ public class ScenarioParam {
 
     @Column(name = "decimal_value", precision = 20, scale = 6)
     private BigDecimal decimalValue;
+//
+//    @Builder.Default
+//    @Column(name = "version", nullable = false)
+//    private Integer version = 1;
 
-    @Builder.Default
-    @Column(name = "version", nullable = false)
-    private Integer version = 1;
+    @Column(name = "valid_from", nullable = false, updatable = false)
+    private LocalDateTime validFrom;
 
-    @Builder.Default
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @Column(name = "valid_to")
+    private LocalDateTime validTo;
 }

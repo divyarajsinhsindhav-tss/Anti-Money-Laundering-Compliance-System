@@ -30,9 +30,9 @@ public class Scenario extends BaseEntity {
     @ToString.Include
     private String scenarioCode;
 
-    @Column(name = "name", nullable = false)
+    @Column(name = "scenario_name", nullable = false)
     @ToString.Include
-    private String name;
+    private String scenarioName;
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
@@ -43,15 +43,11 @@ public class Scenario extends BaseEntity {
     @Column(name = "status", nullable = false, columnDefinition = "status_basic")
     private StatusBasic status = StatusBasic.ACTIVE;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "created_by", nullable = false)
-    private SystemAdmin createdBy;
-
-    @ManyToMany(mappedBy = "scenarios")
+    @ManyToMany(mappedBy = "scenarios", fetch = FetchType.LAZY)
     private List<Rule> rules;
 
-    @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ScenarioParam> scenarioParams;
+//    @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
+//    private List<ScenarioParam> scenarioParams;
 
     @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TenantScenarioMapping> tenantScenarios;

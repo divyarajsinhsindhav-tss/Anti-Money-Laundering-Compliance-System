@@ -7,12 +7,10 @@ import org.hibernate.type.SqlTypes;
 import org.tss.tm.common.enums.TransactionDirection;
 import org.tss.tm.common.enums.TransactionType;
 import org.tss.tm.entity.common.BaseEntity;
-import org.tss.tm.entity.system.JobExecution;
-import org.tss.tm.entity.system.Tenant;
+import org.tss.tm.entity.system.JobRecord;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -29,12 +27,8 @@ public class FinancialTransaction extends BaseEntity {
     private UUID transactionId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tenant_id", nullable = false)
-    private Tenant tenant;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "batch_id")
-    private JobExecution job;
+    private JobRecord job;
 
     @Column(name = "txn_no", nullable = false)
     private String txnNo;
@@ -67,7 +61,4 @@ public class FinancialTransaction extends BaseEntity {
 
     @Column(name = "country_code", nullable = false, length = 2)
     private String countryCode;
-
-    @OneToMany(mappedBy = "transaction", cascade = CascadeType.ALL)
-    private List<Alert> alerts;
 }

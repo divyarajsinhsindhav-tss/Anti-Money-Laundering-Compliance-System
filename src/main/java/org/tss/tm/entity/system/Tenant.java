@@ -6,7 +6,6 @@ import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.tss.tm.entity.common.BaseEntity;
-import org.tss.tm.entity.tenant.*;
 import org.tss.tm.common.enums.TenantStatus;
 
 import java.util.List;
@@ -54,28 +53,7 @@ public class Tenant extends BaseEntity {
     private SystemAdmin onboardedByAdmin;
 
     @OneToMany(mappedBy = "tenant", cascade = CascadeType.REMOVE, orphanRemoval = true)
-    private List<JobExecution> jobExecutions;
-
-    @OneToMany(mappedBy = "tenant", cascade = CascadeType.REMOVE, orphanRemoval = true)
-    private List<Account> accounts;
-
-    @OneToMany(mappedBy = "tenant", cascade = CascadeType.REMOVE, orphanRemoval = true)
-    private List<Alert> alerts;
-
-    @OneToMany(mappedBy = "tenant", cascade = CascadeType.REMOVE, orphanRemoval = true)
-    private List<AmlCase> amlCases;
-
-    @OneToMany(mappedBy = "tenant", cascade = CascadeType.REMOVE, orphanRemoval = true)
-    private List<Customer> customers;
-
-    @OneToMany(mappedBy = "tenant", cascade = CascadeType.REMOVE, orphanRemoval = true)
-    private List<FinancialTransaction> transactions;
-
-    @OneToMany(mappedBy = "tenant", cascade = CascadeType.REMOVE, orphanRemoval = true)
-    private List<ScenarioParam> scenarioParams;
-
-    @OneToMany(mappedBy = "tenant", cascade = CascadeType.REMOVE, orphanRemoval = true)
-    private List<TenantUser> tenantUsers;
+    private List<JobRecord> jobRecords;
 
     @OneToMany(mappedBy = "tenant", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TenantScenarioMapping> tenantScenarios;
