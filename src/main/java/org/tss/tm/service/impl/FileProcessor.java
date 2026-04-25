@@ -28,7 +28,7 @@ public class FileProcessor {
     private JobService jobService;
 
 
-    @Async
+    @Async("File Job Executor")
     public void loadTransactionCsv(UUID jobId, File file, UUID tenantId, String tenantSchemaName) {
         jobService.updateJobStatus(jobId, JobStatus.RUNNING);
         Connection conn = null;
@@ -129,7 +129,7 @@ public class FileProcessor {
         }
     }
 
-    @Async
+    @Async("File Job Executor")
     public void loadCustomerFile(UUID jobId, File file, UUID tenantId, String tenantSchemaName) {
         jobService.updateJobStatus(jobId, JobStatus.RUNNING);
 

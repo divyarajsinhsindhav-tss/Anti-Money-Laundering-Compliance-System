@@ -41,7 +41,8 @@ public class FileServiceImpl implements FileService {
     public CompletableFuture<String> processFile(MultipartFile newFile, JobType type) {
         log.info("File Processing Started.");
         File dir = new File(uploadDir);
-        if (!dir.exists()) dir.mkdirs();
+        if (!dir.exists())
+            dir.mkdirs();
 
         UUID jobId = jobService.createNewJob(type).getJobId();
         log.info("New Job Created.");
@@ -56,8 +57,9 @@ public class FileServiceImpl implements FileService {
             UUID currentTenantId = currentTenant.getTenantId();
             String tenantSchema = currentTenant.getSchemaName();
 
-//            UUID currentTenantId = UUID.fromString("c77290af-8631-422b-a9a6-0d4ebac6ced9");
-//            WE HAVE TO CHANGE THE UUID RANDOM and CREATENEWJOB UUID--------
+            // UUID currentTenantId =
+            // UUID.fromString("c77290af-8631-422b-a9a6-0d4ebac6ced9");
+            // WE HAVE TO CHANGE THE UUID RANDOM and CREATENEWJOB UUID--------
             log.info("Java File Processing Completed");
 
             if (type.equals(JobType.FILE_UPLOAD_TRANSACTION)) {
@@ -73,18 +75,18 @@ public class FileServiceImpl implements FileService {
             log.info("File Uploaded Successfully.");
             return CompletableFuture.completedFuture(String.valueOf(jobId));
 
-            //HERE WE HAVE TO MAKE JOB CODE AND RETURN THAT INSTEAD OF ID.
+            // HERE WE HAVE TO MAKE JOB CODE AND RETURN THAT INSTEAD OF ID.
 
         } catch (Exception e) {
+            log.error("File pre-processing failed for job {}: {}", jobId, e.getMessage(), e);
             if (file.exists()) {
                 file.delete();
             }
             jobService.updateJobStatus(jobId, JobStatus.FAILED);
             log.error("File pre-processing failed for job {}", jobId);
-            throw new RuntimeException("File Upload Failed");
+            throw new RuntimeException("File Upload Failed", e);
         }
     }
-
 
     private void validateHeader(File file, List<String> expected) {
 
@@ -108,8 +110,7 @@ public class FileServiceImpl implements FileService {
 
             if (!actual.equals(normalizedExpected)) {
                 throw new RuntimeException(
-                        "Invalid header format. expected=" + expected + " actual=" + actual
-                );
+                        "Invalid header format. expected=" + expected + " actual=" + actual);
             }
 
         } catch (IOException e) {

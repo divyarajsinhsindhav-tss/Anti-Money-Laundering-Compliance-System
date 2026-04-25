@@ -23,5 +23,16 @@ public class AsyncConfig {
         return  threadPoolExecutor;
     }
 
+    @Bean("File Job Executor")
+    public Executor fileJobExecutor() {
+        ThreadPoolTaskExecutor threadPoolExecutor = new ThreadPoolTaskExecutor();
+        threadPoolExecutor.setCorePoolSize(5);
+        threadPoolExecutor.setMaxPoolSize(10);
+        threadPoolExecutor.setQueueCapacity(100);
+        threadPoolExecutor.setThreadNamePrefix("FileJob-");
+        threadPoolExecutor.initialize();
+        return  threadPoolExecutor;
+    }
+
 }
 
