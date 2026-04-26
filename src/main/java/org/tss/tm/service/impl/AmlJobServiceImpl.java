@@ -32,7 +32,7 @@ public class AmlJobServiceImpl implements AmlJobService {
     @Override
     public void executeTenantScenarios(int adminDays) {
 
-        String tenantId= String.valueOf(tenantService.getCurrentTenant().getTenantId());
+        UUID tenantId= tenantService.getCurrentTenant().getTenantId();
         UUID currentJobId =jobService.createNewJob(JobType.RULE_ENGINE).getJobId();
 
         List<Scenario> activeScenarios = scenarioRepo.findActiveScenariosByTenantId(tenantId);

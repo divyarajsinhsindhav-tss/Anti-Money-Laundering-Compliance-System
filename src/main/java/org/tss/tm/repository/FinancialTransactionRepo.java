@@ -5,5 +5,5 @@ import org.tss.tm.entity.tenant.FinancialTransaction;
 
 import java.util.UUID;
 
-public interface FinancialTransactionRepository extends JpaRepository<FinancialTransaction, UUID> {
+public interface FinancialTransactionRepo extends JpaRepository<FinancialTransaction, UUID> {
 }

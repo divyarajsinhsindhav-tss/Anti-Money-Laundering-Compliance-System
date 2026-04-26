@@ -9,18 +9,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.tss.tm.common.enums.AlertStatus;
 import org.tss.tm.entity.system.JobRecord;
-import org.tss.tm.entity.system.Rule;
 import org.tss.tm.entity.system.Scenario;
 import org.tss.tm.entity.tenant.Alert;
-import org.tss.tm.entity.tenant.AlertInfo;
-import org.tss.tm.entity.tenant.FinancialTransaction;
 import org.tss.tm.repository.*;
 import org.tss.tm.service.interfaces.ScenarioParamService;
 
 import java.util.*;
 
 import java.time.LocalDate;
-import java.util.*;
 
 @Slf4j
 @Service
@@ -29,10 +25,10 @@ public class AmlExecutionEngine {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final ScenarioParamService paramService;
-    private final AlertRepository alertRepository;
-    private final AlertInfoRepository alertInfoRepository;
+    private final AlertRepo alertRepo;
+    private final AlertInfoRepo alertInfoRepo;
     private final ScenarioRepo scenarioRepo;
-    private final CustomerRepository customerRepository;
+    private final CustomerRepo customerRepo;
     private final JobRepo jobRepo;
 
     private record ExtractedCriminal(UUID customerId, UUID[] involvedTxns) {
@@ -106,7 +102,7 @@ public class AmlExecutionEngine {
 
                 List<UUID> allInvolvedTxns = Arrays.asList(criminal.involvedTxns());
 
-                Set<UUID> alreadyFlaggedTxns = alertInfoRepository.findAlreadyFlaggedTransactions(
+                Set<UUID> alreadyFlaggedTxns = alertInfoRepo.findAlreadyFlaggedTransactions(
                         blueprint.getScenarioId(),
                         allInvolvedTxns
                 );
@@ -122,9 +118,9 @@ public class AmlExecutionEngine {
                 alert.setAlertStatus(AlertStatus.OPEN);
                 alert.setJob(jobRef);
                 alert.setScenario(scenarioRef);
-                alert.setCustomer(customerRepository.getReferenceById(criminal.customerId()));
+                alert.setCustomer(customerRepo.getReferenceById(criminal.customerId()));
 
-                Alert savedAlert = alertRepository.save(alert);
+                Alert savedAlert = alertRepo.save(alert);
 
                 List<MapSqlParameterSource> batchArgs = new ArrayList<>();
 

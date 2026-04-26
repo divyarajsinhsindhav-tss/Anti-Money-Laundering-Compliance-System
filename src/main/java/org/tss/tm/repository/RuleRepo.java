@@ -6,6 +6,6 @@ import org.tss.tm.entity.system.Rule;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface RuleRepository extends JpaRepository<Rule, UUID> {
+public interface RuleRepo extends JpaRepository<Rule, UUID> {
     Optional<Rule>  findByRuleCode(String ruleCode);
 }

@@ -15,7 +15,8 @@ public interface ScenarioRepo extends JpaRepository<Scenario, UUID> {
         SELECT s FROM Scenario s 
         JOIN s.tenantScenarios ts 
         WHERE s.status = 'ACTIVE' 
-          AND ts.tenantId = :tenantId
+          AND ts.isEnabled = true 
+          AND ts.tenant.tenantId = :tenantId
     """)
-    List<Scenario> findActiveScenariosByTenantId(@Param("tenantId") String tenantId);
+    List<Scenario> findActiveScenariosByTenantId(@Param("tenantId") UUID tenantId);
 }
