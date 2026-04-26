@@ -1,5 +1,9 @@
 package org.tss.tm.ruleEngine;
 
+import java.util.Map;
+
 public interface AmlRule {
-    String getSqlStatement();
+    String getRuleCode();
+
+    String getBooleanCondition(Map<String, Object> ruleParams);
 }
