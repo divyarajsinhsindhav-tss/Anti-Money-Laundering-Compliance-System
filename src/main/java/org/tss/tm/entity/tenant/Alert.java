@@ -46,6 +46,10 @@ public class Alert extends BaseEntity {
     @OneToMany(mappedBy = "alert", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AlertInfo> alertInfos;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "case_id")
+    private AmlCase amlCase;
+
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)

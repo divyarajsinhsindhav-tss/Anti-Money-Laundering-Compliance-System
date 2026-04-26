@@ -31,15 +31,17 @@ public class AuthController {
 
         @PostMapping("/login")
         public ResponseEntity<ApiResponse<AuthResponse>> login(
-                        @Valid @RequestBody LoginRequest loginRequest,
-                        HttpServletRequest httpServletRequest) {
+                @Valid @RequestBody LoginRequest loginRequest,
+                HttpServletRequest httpServletRequest
+        ) {
                 System.out.println(TenantContext.getCurrentTenant());
                 AuthResponse authResponse = authService.login(loginRequest);
                 return ResponseEntity.ok(ApiResponse.of(
-                                HttpStatus.OK,
-                                authResponse.getMessage(),
-                                httpServletRequest.getRequestURI(),
-                                authResponse));
+                        HttpStatus.OK,
+                        authResponse.getMessage(),
+                        httpServletRequest.getRequestURI(),
+                        authResponse
+                ));
         }
 
         @PostMapping("/change-password")

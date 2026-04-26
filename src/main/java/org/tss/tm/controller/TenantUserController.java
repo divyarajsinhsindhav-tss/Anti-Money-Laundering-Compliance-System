@@ -13,6 +13,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import org.tss.tm.common.response.ApiResponse;
+import org.tss.tm.common.response.PagedResponse;
+import org.tss.tm.dto.admin.response.ScenarioDetailResponse;
+import org.tss.tm.dto.admin.response.ScenarioResponse;
 import org.tss.tm.dto.tenant.response.TenantUserResponse;
 import org.tss.tm.dto.user.request.ComplianceOfficerRegistrationRequest;
 import org.tss.tm.dto.user.response.UserResponse;

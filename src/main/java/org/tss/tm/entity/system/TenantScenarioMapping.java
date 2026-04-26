@@ -29,9 +29,11 @@ public class TenantScenarioMapping {
     @JoinColumn(name = "scenario_id", nullable = false)
     private Scenario scenario;
 
+    @Builder.Default
     @Column(name = "is_enabled", nullable = false)
     private Boolean isEnabled = true;
 
+    @Builder.Default
     @Column(name = "activated_at", nullable = false)
     private LocalDateTime activatedAt = LocalDateTime.now();
 
