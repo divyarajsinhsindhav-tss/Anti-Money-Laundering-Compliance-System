@@ -36,14 +36,15 @@ public class PassThroughScenarioBlueprint implements AmlScenarioBlueprint {
         return """
             WITH customer_metrics AS (
                 SELECT 
-                    customer_id,
-                    SUM(CASE WHEN txn_type = 'CREDIT' THEN amount ELSE 0 END) AS total_credits,
-                    SUM(CASE WHEN txn_type = 'DEBIT' THEN amount ELSE 0 END) AS total_debits,
-                    ARRAY_AGG(transaction_id) AS involved_txns
-                FROM financial_transaction
-                WHERE txn_timestamp >= CAST(:ANCHOR_DATE AS TIMESTAMP) - CAST(:LOOKBACK_DAYS || ' days' AS INTERVAL)
-                  AND txn_timestamp <= CAST(:ANCHOR_DATE AS TIMESTAMP)
-                GROUP BY customer_id
+                    a.customer_id,
+                    SUM(CASE WHEN ft.direction = 'IN' THEN ft.amount ELSE 0 END) AS total_credits,
+                    SUM(CASE WHEN ft.direction = 'OUT' THEN ft.amount ELSE 0 END) AS total_debits,
+                    ARRAY_AGG(ft.transaction_id) AS involved_txns
+                FROM financial_transaction ft
+                JOIN account a ON ft.account_id = a.account_id
+                WHERE ft.txn_timestamp >= CAST(:ANCHOR_DATE AS TIMESTAMP) - CAST(:LOOKBACK_DAYS || ' days' AS INTERVAL)
+                  AND ft.txn_timestamp <= CAST(:ANCHOR_DATE AS TIMESTAMP)
+                GROUP BY a.customer_id
             )
             SELECT customer_id, involved_txns
             FROM customer_metrics

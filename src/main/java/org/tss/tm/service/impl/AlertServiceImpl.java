@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.tss.tm.common.enums.AlertStatus;
 import org.tss.tm.dto.tenant.response.AlertResponse;
 import org.tss.tm.entity.tenant.Alert;
@@ -62,6 +63,7 @@ public class AlertServiceImpl implements AlertService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<AlertResponse> getAllAlerts(AlertStatus status, Pageable pageable) {
         Page<Alert> alerts;
         if (status != null) {

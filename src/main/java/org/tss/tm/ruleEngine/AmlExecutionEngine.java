@@ -47,7 +47,7 @@ public class AmlExecutionEngine {
         for (Map<String, Object> paramMap : nestedParams.values()) {
             Object value = paramMap.get("LOOKBACK_DAYS");
             if (value != null) {
-                lookbackDays = (Integer) value;
+                lookbackDays = ((Number) value).intValue();
                 break;
             }
         }
@@ -78,9 +78,9 @@ public class AmlExecutionEngine {
         JobRecord jobRef = jobRepo.getReferenceById(currentJobId);
 
         String insertEvidenceSql = """
-                    INSERT INTO alert_info (alert_info_id, alert_id, transaction_id, rule_id, scenario_id)
+                    INSERT INTO alert_info (alert_id, transaction_id, rule_id, scenario_id)
                     VALUES (:alertId, :txnId, :ruleId, :scenarioId)
-                    ON CONFLICT (transaction_id, scenario_id) DO NOTHING 
+                    ON CONFLICT (transaction_id, rule_id, scenario_id) DO NOTHING 
                 """;
 
         for (int i = 0; i < adminDays; i++) {
@@ -120,15 +120,22 @@ public class AmlExecutionEngine {
                 alert.setScenario(scenarioRef);
                 alert.setCustomer(customerRepo.getReferenceById(criminal.customerId()));
 
-                Alert savedAlert = alertRepo.save(alert);
+                Alert savedAlert = alertRepo.saveAndFlush(alert);
 
                 List<MapSqlParameterSource> batchArgs = new ArrayList<>();
+
+                // Fetch the rule ID for the first rule in the scenario to satisfy the NOT NULL constraint in alert_info
+                UUID ruleId = jdbcTemplate.queryForObject(
+                        "SELECT rule_id FROM public.rules WHERE rule_code = :code",
+                        Map.of("code", blueprint.getRules().get(0).getRuleCode()),
+                        UUID.class
+                );
 
                 for (UUID newTxnId : netNewEvidence) {
                     MapSqlParameterSource args = new MapSqlParameterSource()
                             .addValue("alertId", savedAlert.getAlertId())
                             .addValue("txnId", newTxnId)
-                            .addValue("ruleId", null)
+                            .addValue("ruleId", ruleId)
                             .addValue("scenarioId", blueprint.getScenarioId());
                     batchArgs.add(args);
                 }
