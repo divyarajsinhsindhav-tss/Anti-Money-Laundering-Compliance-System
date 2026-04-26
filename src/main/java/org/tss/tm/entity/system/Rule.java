@@ -2,6 +2,7 @@ package org.tss.tm.entity.system;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.tss.tm.entity.common.BaseEntity;
@@ -17,7 +18,7 @@ import java.util.UUID;
 @Table(name = "rules", schema = "public")
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class Rule extends BaseEntity {
 
     @Id

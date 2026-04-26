@@ -133,7 +133,6 @@ public class TenantServiceImpl implements TenantService {
 
     public TenantUser registerTenantAdmin(TenantAdminRegistrationRequest adminRequest, Tenant tenant) {
         TenantUser user = userMapper.toEntity(adminRequest);
-        user.setTenant(tenant);
         user.setPasswordHash(passwordEncoder.encode(adminRequest.getPassword()));
         user.setRole(UserRole.BANK_ADMIN);
         user.setIsActive(true);
@@ -181,5 +180,10 @@ public class TenantServiceImpl implements TenantService {
                 .orElseThrow(()->new RuntimeException("Tenant not found."));
 
         return currentTenant;
+    }
+    @Override
+    public String getTenantCodeBySchemaName(String schemaName) {
+        return tenantRepo.findTenantCodeBySchemaName(schemaName)
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant with schema", schemaName));
     }
 }

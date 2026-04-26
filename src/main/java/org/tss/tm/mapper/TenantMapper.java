@@ -11,7 +11,6 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface TenantMapper {
 
-    @Mapping(target = "tenantId", ignore = true)
     @Mapping(target = "schemaName", ignore = true)
     @Mapping(target = "onboardedByAdmin", ignore = true)
     @Mapping(target = "status", ignore = true)

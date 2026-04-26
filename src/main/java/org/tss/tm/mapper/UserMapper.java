@@ -17,7 +17,6 @@ public interface UserMapper {
     @Mapping(target = "userCode", ignore = true)
     @Mapping(target = "passwordHash", ignore = true)
     @Mapping(target = "role", ignore = true)
-    @Mapping(target = "tenant", ignore = true)
     @Mapping(target = "isActive", ignore = true)
     @Mapping(target = "lastLogin", ignore = true)
     @Mapping(target = "lockedUntil", ignore = true)
@@ -30,7 +29,6 @@ public interface UserMapper {
     @Mapping(target = "userCode", ignore = true)
     @Mapping(target = "passwordHash", ignore = true)
     @Mapping(target = "role", ignore = true)
-    @Mapping(target = "tenant", ignore = true)
     @Mapping(target = "isActive", ignore = true)
     @Mapping(target = "lastLogin", ignore = true)
     @Mapping(target = "lockedUntil", ignore = true)
@@ -41,9 +39,6 @@ public interface UserMapper {
 
     UserResponse toResponse(TenantUser user);
 
-    @Mapping(target = "name", source = "tenant.name")
-    @Mapping(target = "displayName", source = "tenant.displayName")
-    @Mapping(target = "tenantCode", source = "tenant.tenantCode")
     @Mapping(target = "email", source = "user.email")
     TenantUserResponse toTenantUserResponse(TenantUser user);
 

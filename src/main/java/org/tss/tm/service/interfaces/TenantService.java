@@ -22,5 +22,7 @@ public interface TenantService {
 
     void migrateAllTenants();
     Tenant getCurrentTenant();
+
+    String getTenantCodeBySchemaName(String schemaName);
 }
 

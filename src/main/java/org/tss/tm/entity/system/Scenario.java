@@ -46,8 +46,9 @@ public class Scenario extends BaseEntity {
     @ManyToMany(mappedBy = "scenarios", fetch = FetchType.LAZY)
     private List<Rule> rules;
 
-//    @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
-//    private List<ScenarioParam> scenarioParams;
+    // @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval =
+    // true)
+    // private List<ScenarioParam> scenarioParams;
 
     @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TenantScenarioMapping> tenantScenarios;

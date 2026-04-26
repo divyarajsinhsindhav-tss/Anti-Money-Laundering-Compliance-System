@@ -12,6 +12,7 @@ import org.tss.tm.entity.tenant.TenantUser;
 import org.tss.tm.repository.SystemAdminRepo;
 import org.tss.tm.repository.TenantUserRepo;
 import org.tss.tm.tenant.TenantContext;
+import org.tss.tm.repository.TenantRepo;
 
 import java.util.List;
 
@@ -21,6 +22,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     private final SystemAdminRepo systemAdminRepo;
     private final TenantUserRepo tenantUserRepo;
+    private final TenantRepo tenantRepo;
 
     @Override
     @org.springframework.transaction.annotation.Transactional(readOnly = true)
@@ -41,11 +43,14 @@ public class CustomUserDetailsService implements UserDetailsService {
         }
         TenantUser tenantUser = tenantUserRepo.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+        String tenantCode = tenantRepo.findTenantCodeBySchemaName(tenant)
+                .orElseThrow(() -> new UsernameNotFoundException("Tenant not found"));
+
         return new CustomUserDetails(
                 tenantUser.getEmail(),
                 tenantUser.getPasswordHash(),
                 List.of(new SimpleGrantedAuthority("ROLE_" + tenantUser.getRole().name())),
-                tenantUser.getTenant().getTenantCode(),
+                tenantCode,
                 false,
                 tenantUser.getIsActive(),
                 isAccountNonLocked(tenantUser.getLockedUntil()));

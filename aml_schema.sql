@@ -459,7 +459,7 @@ CREATE TRIGGER trg_tenant_user_updated_at
 -- ------------------------------------------------------------
 CREATE TABLE customer (
     customer_id  UUID         NOT NULL DEFAULT uuid_generate_v7(),
-    tenant_id    UUID         NOT NULL REFERENCES public.tenant(tenant_id),
+    tenant_id    UUID         REFERENCES public.tenant(tenant_id),
 
     cif          VARCHAR(50)  NOT NULL
         CHECK (cif ~ '^[A-Z0-9\-]{3,50}$'),
@@ -482,7 +482,7 @@ CREATE TABLE customer (
     updated_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT pk_customer       PRIMARY KEY (customer_id),
-    CONSTRAINT uq_customer_cif   UNIQUE (tenant_id, cif)
+    CONSTRAINT uq_customer_cif   UNIQUE (cif)
 );
 
 CREATE TRIGGER trg_customer_updated_at
@@ -495,7 +495,7 @@ CREATE TRIGGER trg_customer_updated_at
 -- ------------------------------------------------------------
 CREATE TABLE account (
     account_id     UUID              NOT NULL DEFAULT uuid_generate_v7(),
-    tenant_id      UUID              NOT NULL REFERENCES public.tenant(tenant_id),
+    tenant_id      UUID              REFERENCES public.tenant(tenant_id),
     customer_id    UUID              NOT NULL REFERENCES public.customer(customer_id),
 
     account_number VARCHAR(30)       NOT NULL
@@ -508,7 +508,7 @@ CREATE TABLE account (
     created_at     TIMESTAMP         NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT pk_account              PRIMARY KEY (account_id),
-    CONSTRAINT uq_account_number       UNIQUE (tenant_id, account_number)
+    CONSTRAINT uq_account_number       UNIQUE (account_number)
 );
 
 CREATE INDEX ix_account_customer ON public.account (customer_id) WHERE is_deleted = FALSE;
@@ -519,7 +519,7 @@ CREATE INDEX ix_account_customer ON public.account (customer_id) WHERE is_delete
 -- ------------------------------------------------------------
 CREATE TABLE financial_transaction (
     transaction_id           UUID          NOT NULL DEFAULT uuid_generate_v7(),
-    tenant_id                UUID          NOT NULL REFERENCES public.tenant(tenant_id),
+    tenant_id                UUID          REFERENCES public.tenant(tenant_id),
     batch_id                 UUID,         -- references job_execution.job_id (loose FK)
 
     txn_no                   VARCHAR(50)   NOT NULL
@@ -544,7 +544,7 @@ CREATE TABLE financial_transaction (
     created_at               TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT pk_financial_transaction PRIMARY KEY (transaction_id),
-    CONSTRAINT uq_txn_no                UNIQUE (tenant_id, txn_no)
+    CONSTRAINT uq_txn_no                UNIQUE (txn_no)
 );
 
 -- ------------------------------------------------------------

@@ -33,18 +33,19 @@ public class TenantUserServiceImpl implements TenantUserService {
 
     @Override
     @Transactional
-    public UserResponse registerComplianceOfficer(ComplianceOfficerRegistrationRequest request, String currentTenantSchema) {
+    public UserResponse registerComplianceOfficer(ComplianceOfficerRegistrationRequest request,
+            String currentTenantSchema) {
         log.info("Registering compliance officer for tenant schema: {}", currentTenantSchema);
 
         Tenant tenant = tenantRepo.findBySchemaName(currentTenantSchema)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", currentTenantSchema));
 
         if (tenantUserRepo.findByEmail(request.getEmail()).isPresent()) {
-            throw new BusinessRuleException("User with email " + request.getEmail() + " already exists in this tenant", "USER_ALREADY_EXISTS");
+            throw new BusinessRuleException("User with email " + request.getEmail() + " already exists in this tenant",
+                    "USER_ALREADY_EXISTS");
         }
 
         TenantUser user = userMapper.toEntity(request);
-        user.setTenant(tenant);
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setRole(UserRole.COMPLIANCE_OFFICER);
         user.setIsActive(true);

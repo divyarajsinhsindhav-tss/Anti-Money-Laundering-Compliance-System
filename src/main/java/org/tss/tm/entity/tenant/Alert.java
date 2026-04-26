@@ -31,9 +31,9 @@ public class Alert extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "job_id", nullable = false)
     private JobRecord job;
-//
-//    @Column(name = "rule_param_version", nullable = false)
-//    private Integer ruleParamVersion;
+    //
+    // @Column(name = "rule_param_version", nullable = false)
+    // private Integer ruleParamVersion;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "scenario_id", nullable = false)

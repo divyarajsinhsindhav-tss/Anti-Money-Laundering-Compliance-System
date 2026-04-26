@@ -2,6 +2,7 @@ package org.tss.tm.entity.system;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.tss.tm.entity.common.BaseEntity;
 
 import java.util.UUID;
@@ -12,7 +13,7 @@ import java.util.UUID;
 @Table(name = "system_admin", schema = "public")
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class SystemAdmin extends BaseEntity {
 
     @Id

@@ -95,8 +95,8 @@ CREATE TABLE customer_errors (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-ALTER TABLE customer ADD CONSTRAINT uk_tenant_cif UNIQUE (tenant_id, cif);
-ALTER TABLE account ADD CONSTRAINT uk_tenant_account_no UNIQUE (tenant_id, account_number);
+ALTER TABLE customer ADD CONSTRAINT uq_customer_cif UNIQUE (cif);
+ALTER TABLE account ADD CONSTRAINT uq_account_number UNIQUE (account_number);
 
 select * from staging_transactions;
 
@@ -217,7 +217,7 @@ BEGIN
     WHERE (cardinality(critical_array) = 0 OR critical_array IS NULL)
       AND (cardinality(warning_array) = 0 OR warning_array IS NULL)
 
-	ON CONFLICT (tenant_id, txn_no) 
+	ON CONFLICT (txn_no) 
     DO UPDATE SET 
         batch_id = EXCLUDED.batch_id,
         account_id = EXCLUDED.account_id,
@@ -238,7 +238,7 @@ $$;
 
 
 ALTER TABLE financial_transaction 
-ADD CONSTRAINT uk_tenant_txn_no UNIQUE (tenant_id, txn_no);
+ADD CONSTRAINT uq_txn_no UNIQUE (txn_no);
 
 ------------------------------------------CUSTOMER TABLE--------------------------------------------
 CREATE OR REPLACE PROCEDURE validate_customers(p_job_id TEXT, p_tenant_id UUID)
@@ -307,7 +307,7 @@ BEGIN
             CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, false
         FROM deduped_customers
         
-        ON CONFLICT (tenant_id, cif) 
+        ON CONFLICT (cif) 
         DO UPDATE SET 
             first_name = EXCLUDED.first_name,
             middle_name = EXCLUDED.middle_name,
@@ -331,7 +331,7 @@ BEGIN
     WHERE (cardinality(e.critical_array) = 0 OR e.critical_array IS NULL)
       AND (cardinality(e.warning_array) = 0 OR e.warning_array IS NULL)
       
-    ON CONFLICT (tenant_id, account_number) 
+    ON CONFLICT (account_number) 
     DO UPDATE SET 
         customer_id = EXCLUDED.customer_id,
         account_type = EXCLUDED.account_type,
