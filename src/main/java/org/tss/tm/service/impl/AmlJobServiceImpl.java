@@ -9,6 +9,7 @@ import org.tss.tm.entity.system.JobRecord;
 import org.tss.tm.entity.system.Scenario;
 import org.tss.tm.repository.ScenarioRepo;
 import org.tss.tm.ruleEngine.AmlExecutionEngine;
+import org.tss.tm.ruleEngine.AmlExecutor;
 import org.tss.tm.ruleEngine.AmlScenarioBlueprint;
 import org.tss.tm.ruleEngine.ScenarioFactory;
 import org.tss.tm.service.interfaces.AmlJobService;
@@ -25,7 +26,7 @@ public class AmlJobServiceImpl implements AmlJobService {
 
     private final ScenarioRepo scenarioRepo;
     private final ScenarioFactory scenarioFactory;
-    private final AmlExecutionEngine executionEngine;
+    private final AmlExecutor amlExecutor;
     private final TenantService tenantService;
     private final JobService jobService;
 
@@ -52,7 +53,7 @@ public class AmlJobServiceImpl implements AmlJobService {
             try {
                 AmlScenarioBlueprint blueprint = scenarioFactory.getBlueprint(scenarioCode, scenarioId);
 
-                executionEngine.executeScenario(blueprint, adminDays, currentJobId);
+                amlExecutor.runScenario(blueprint, 30, adminDays, currentJobId);
 
                 successCount++;
                 log.info("Successfully processed Scenario: {}", scenarioCode);

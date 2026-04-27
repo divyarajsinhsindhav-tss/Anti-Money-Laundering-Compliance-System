@@ -7,6 +7,7 @@ import java.util.UUID;
 public class PassThroughScenarioBlueprint implements AmlScenarioBlueprint {
 
     private final UUID scenarioId;
+    private final boolean isAggregate=false;
 
     public PassThroughScenarioBlueprint(UUID scenarioId) {
         this.scenarioId = scenarioId;
@@ -29,6 +30,11 @@ public class PassThroughScenarioBlueprint implements AmlScenarioBlueprint {
                 new HighDebitTurnoverRule(),
                 new LowNetRetentionRule()
         );
+    }
+
+    @Override
+    public boolean isAggregateScenario() {
+        return isAggregate;
     }
 
     @Override

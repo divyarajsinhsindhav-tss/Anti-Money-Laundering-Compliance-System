@@ -7,4 +7,5 @@ public interface AmlScenarioBlueprint {
     String getBaseSqlTemplate();
     String getLogicalOperator();
     List<AmlRule> getRules();
+    boolean isAggregateScenario();
 }

@@ -10,7 +10,7 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AmlJobOrchestrator {
+public class AmlExecutor {
 
     private final AmlExecutionEngine engine;
 
@@ -21,7 +21,6 @@ public class AmlJobOrchestrator {
         }
 
         LocalDate today = LocalDate.now();
-
         if (adminDays <= lookbackDays) {
 
             int effectiveLookback = Math.min(adminDays, lookbackDays);
@@ -32,17 +31,24 @@ public class AmlJobOrchestrator {
                 log.info("Snapshot execution for exactly {} days.", lookbackDays);
             }
 
-            engine.executeScenario(blueprint, today, jobId, effectiveLookback);
+            if (blueprint.isAggregateScenario()) {
+                engine.executeMultipleTxnScenario(blueprint, today, jobId, effectiveLookback);
+            } else {
+                engine.executeSingleTxnScenario(blueprint, today, jobId);
+            }
             return;
         }
-
-        log.info("Historical replay: {} days requested with rule lookback {}", adminDays, lookbackDays);
 
         int totalWindows = adminDays - lookbackDays + 1;
 
         for (int i = 0; i < totalWindows; i++) {
             LocalDate anchor = today.minusDays(i);
-            engine.executeScenario(blueprint, anchor, jobId, lookbackDays);
+
+            if (blueprint.isAggregateScenario()) {
+                engine.executeMultipleTxnScenario(blueprint, anchor, jobId, lookbackDays);
+            } else {
+                engine.executeSingleTxnScenario(blueprint, anchor, jobId);
+            }
         }
     }
 }

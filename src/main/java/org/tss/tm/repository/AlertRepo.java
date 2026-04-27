@@ -16,4 +16,7 @@ public interface AlertRepo extends JpaRepository<Alert, UUID> {
     Page<Alert> findAllByAlertStatus(AlertStatus status, Pageable pageable);
 
     Optional<Alert> findByAlertCode(String alertCode);
+
+    Optional<Alert> findByCustomer_CustomerIdAndScenario_ScenarioIdAndAlertStatus(
+            UUID customerId, UUID scenarioId, AlertStatus status);
 }
