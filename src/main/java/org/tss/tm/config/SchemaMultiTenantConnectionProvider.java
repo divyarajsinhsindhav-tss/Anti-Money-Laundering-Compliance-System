@@ -44,7 +44,7 @@ public class SchemaMultiTenantConnectionProvider implements MultiTenantConnectio
 
         // THE FIX: Set search path to look at Tenant FIRST, and Public SECOND.
         try (java.sql.Statement stmt = connection.createStatement()) {
-            stmt.execute("SET search_path TO " + tenantIdentifier + ", public");
+            stmt.execute("SET search_path TO \"" + tenantIdentifier + "\", public");
         }
 
         return connection;

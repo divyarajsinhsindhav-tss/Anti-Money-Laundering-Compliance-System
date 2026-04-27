@@ -34,7 +34,7 @@ public class AmlExecutor {
             if (blueprint.isAggregateScenario()) {
                 engine.executeMultipleTxnScenario(blueprint, today, jobId, effectiveLookback);
             } else {
-                engine.executeSingleTxnScenario(blueprint, today, jobId);
+                engine.executeSingleTxnScenario(blueprint, today, jobId, effectiveLookback);
             }
             return;
         }
@@ -47,7 +47,7 @@ public class AmlExecutor {
             if (blueprint.isAggregateScenario()) {
                 engine.executeMultipleTxnScenario(blueprint, anchor, jobId, lookbackDays);
             } else {
-                engine.executeSingleTxnScenario(blueprint, anchor, jobId);
+                engine.executeSingleTxnScenario(blueprint, anchor, jobId, lookbackDays);
             }
         }
     }

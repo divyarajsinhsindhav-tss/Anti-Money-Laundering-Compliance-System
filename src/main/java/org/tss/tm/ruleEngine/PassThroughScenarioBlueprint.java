@@ -7,7 +7,7 @@ import java.util.UUID;
 public class PassThroughScenarioBlueprint implements AmlScenarioBlueprint {
 
     private final UUID scenarioId;
-    private final boolean isAggregate=false;
+    private final boolean isAggregate=true;
 
     public PassThroughScenarioBlueprint(UUID scenarioId) {
         this.scenarioId = scenarioId;
