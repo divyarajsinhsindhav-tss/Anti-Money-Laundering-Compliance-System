@@ -32,36 +32,36 @@ public class AlertController {
     @GetMapping
     @PreAuthorize("hasRole('BANK_ADMIN')")
     public ResponseEntity<ApiResponse<PagedResponse<AlertResponse>>> getAllAlerts(
-        @RequestParam(required = false) AlertStatus status,
-        @PageableDefault(size = 10) Pageable pageable,
-        HttpServletRequest httpServletRequest
+            @RequestParam(required = false) AlertStatus status,
+            @PageableDefault(size = 10) Pageable pageable,
+            HttpServletRequest httpServletRequest
     ) {
         log.info("Received request to fetch all alerts with status: {}", status);
         Page<AlertResponse> alerts = alertService.getAllAlerts(status, pageable);
 
         PagedResponse<AlertResponse> pagedResponse = PagedResponse.of(
-            alerts.getContent(),
-            alerts.getNumber(),
-            alerts.getSize(),
-            alerts.getTotalElements(),
-            pageable.getSort().toString(),
-            pageable.getSort().isSorted() ? pageable.getSort().iterator().next().getDirection().name() : "ASC");
+                alerts.getContent(),
+                alerts.getNumber(),
+                alerts.getSize(),
+                alerts.getTotalElements(),
+                pageable.getSort().toString(),
+                pageable.getSort().isSorted() ? pageable.getSort().iterator().next().getDirection().name() : "ASC");
 
         return ResponseEntity.ok(ApiResponse.of(
-            HttpStatus.OK,
-            "Alerts fetched successfully",
-            httpServletRequest.getRequestURI(),
-            pagedResponse
+                HttpStatus.OK,
+                "Alerts fetched successfully",
+                httpServletRequest.getRequestURI(),
+                pagedResponse
         ));
     }
 
     @PatchMapping("/{alertCode}/status")
     @PreAuthorize("hasRole('BANK_ADMIN')")
     public ResponseEntity<ApiResponse<AlertResponse>> updateAlertStatus(
-        @PathVariable String alertCode,
-        @Valid @RequestBody UpdateAlertStatusRequest request,
-        @AuthenticationPrincipal UserDetails userDetails,
-        HttpServletRequest httpServletRequest
+            @PathVariable String alertCode,
+            @Valid @RequestBody UpdateAlertStatusRequest request,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest httpServletRequest
     ) {
         log.info("Received request to update alert status for alert: {} to {} by user: {}", alertCode,
                 request.getStatus(), userDetails.getUsername());
@@ -69,10 +69,10 @@ public class AlertController {
                 userDetails.getUsername());
 
         return ResponseEntity.ok(ApiResponse.of(
-            HttpStatus.OK,
-            "Alert status updated successfully",
-            httpServletRequest.getRequestURI(),
-            response
+                HttpStatus.OK,
+                "Alert status updated successfully",
+                httpServletRequest.getRequestURI(),
+                response
         ));
     }
 }

@@ -3,44 +3,41 @@ package org.tss.tm.service.impl;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.tss.tm.common.constant.TenantConstants;
 import org.tss.tm.common.enums.UserRole;
+import org.tss.tm.dto.admin.response.ScenarioResponse;
 import org.tss.tm.dto.tenant.request.TenantAdminRegistrationRequest;
 import org.tss.tm.dto.tenant.request.TenantRegistrationRequest;
-import org.tss.tm.dto.admin.response.ScenarioResponse;
-import org.tss.tm.mapper.ScenarioMapper;
-import org.tss.tm.repository.TenantScenarioRepo;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import org.tss.tm.dto.tenant.response.FileErrorResponse;
 import org.tss.tm.dto.tenant.response.TenantAvailableResponse;
 import org.tss.tm.dto.tenant.response.TenantResponse;
-import org.tss.tm.dto.tenant.response.TenantUserResponse;
 import org.tss.tm.entity.system.SystemAdmin;
 import org.tss.tm.entity.system.Tenant;
 import org.tss.tm.entity.tenant.TenantUser;
-import org.tss.tm.repository.SystemAdminRepo;
-import org.tss.tm.repository.TenantRepo;
-import org.tss.tm.repository.TenantUserRepo;
-import org.tss.tm.service.interfaces.FlywayMigration;
-import org.tss.tm.service.interfaces.TenantService;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.transaction.support.TransactionTemplate;
-import org.tss.tm.common.constant.TenantConstants;
-import org.tss.tm.mapper.TenantMapper;
-import org.tss.tm.mapper.UserMapper;
-import org.tss.tm.service.interfaces.EmailService;
-import org.tss.tm.tenant.TenantContext;
 import org.tss.tm.exception.BusinessRuleException;
 import org.tss.tm.exception.ResourceNotFoundException;
+import org.tss.tm.exception.TenantMismatchException;
+import org.tss.tm.mapper.ScenarioMapper;
+import org.tss.tm.mapper.TenantMapper;
+import org.tss.tm.mapper.UserMapper;
+import org.tss.tm.repository.*;
+import org.tss.tm.service.interfaces.EmailService;
+import org.tss.tm.service.interfaces.FlywayMigration;
+import org.tss.tm.service.interfaces.TenantService;
 import org.tss.tm.tenant.TenantContext;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.UUID;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -60,6 +57,8 @@ public class TenantServiceImpl implements TenantService {
     private final EmailService emailService;
     private final TenantScenarioRepo tenantScenarioRepo;
     private final ScenarioMapper scenarioMapper;
+    private final CustomerErrorRepo customerErrorRepo;
+    private final TransactionErrorRepo transactionErrorRepo;
 
     @Override
     public TenantResponse createTenant(TenantRegistrationRequest request, String email) {
@@ -73,8 +72,6 @@ public class TenantServiceImpl implements TenantService {
 
         String schemaName = TenantConstants.SCHEMA_PREFIX + tenantCode.toLowerCase();
 
-        // 1. Create Schema (Non-transactional in many DBs, or needs separate
-        // connection)
         try (Connection conn = dataSource.getConnection();
                 Statement stmt = conn.createStatement()) {
             stmt.execute("CREATE SCHEMA IF NOT EXISTS " + schemaName);
@@ -84,7 +81,6 @@ public class TenantServiceImpl implements TenantService {
                     "SCHEMA_CREATION_FAILED");
         }
 
-        // 2. Save Tenant Record (Transactional)
         Tenant savedTenant = transactionTemplate.execute(status -> {
             SystemAdmin admin = systemAdminRepo.findByEmail(email)
                     .orElseThrow(() -> new ResourceNotFoundException("SystemAdmin", email));
@@ -98,10 +94,8 @@ public class TenantServiceImpl implements TenantService {
             return saved;
         });
 
-        // 3. Migrate Schema (Should be outside JPA transaction)
         flywayMigration.migrateSchema(schemaName);
 
-        // 4. Register Admin User (New Transaction for Tenant Schema)
         if (request.getAdminRegistrationRequest() != null) {
             try {
                 TenantContext.setCurrentTenant(schemaName);
@@ -110,7 +104,6 @@ public class TenantServiceImpl implements TenantService {
                     return null;
                 });
 
-                // 5. Send Welcome Email
                 sendWelcomeEmail(savedTenant, request.getAdminRegistrationRequest());
 
             } finally {
@@ -121,7 +114,9 @@ public class TenantServiceImpl implements TenantService {
         return tenantMapper.toResponse(savedTenant);
     }
 
-    private void sendWelcomeEmail(Tenant tenant, TenantAdminRegistrationRequest adminRequest) {
+    private void sendWelcomeEmail(Tenant tenant,
+                                  TenantAdminRegistrationRequest adminRequest
+    ) {
         java.util.Map<String, Object> variables = new java.util.HashMap<>();
         variables.put("tenantName", tenant.getName());
         variables.put("adminEmail", adminRequest.getEmail());
@@ -141,7 +136,9 @@ public class TenantServiceImpl implements TenantService {
                 .build();
     }
 
-    public TenantUser registerTenantAdmin(TenantAdminRegistrationRequest adminRequest, Tenant tenant) {
+    public TenantUser registerTenantAdmin(TenantAdminRegistrationRequest adminRequest,
+                                          Tenant tenant
+    ) {
         TenantUser user = userMapper.toEntity(adminRequest);
         user.setPasswordHash(passwordEncoder.encode(adminRequest.getPassword()));
         user.setRole(UserRole.BANK_ADMIN);
@@ -181,11 +178,15 @@ public class TenantServiceImpl implements TenantService {
 
     @Override
     public Tenant getCurrentTenant() {
-        log.info("Current tenant: {}", TenantContext.getCurrentTenant());
+        String schemaName = TenantContext.getCurrentTenant();
+        if (schemaName == null || schemaName.isEmpty()) {
+            throw new ResourceNotFoundException("Tenant context is missing", "CONTEXT_MISSING");
+        }
+        log.info("Current tenant: {}", schemaName);
         return tenantRepo
-                .findTenantBySchemaName(TenantContext.getCurrentTenant())
+                .findTenantBySchemaName(schemaName)
                 .orElseThrow(
-                        () -> new ResourceNotFoundException("Tenant with schema", TenantContext.getCurrentTenant()));
+                        () -> new ResourceNotFoundException("Tenant with schema", schemaName));
     }
 
     @Override
@@ -200,5 +201,21 @@ public class TenantServiceImpl implements TenantService {
         Tenant tenant = getCurrentTenant();
         return tenantScenarioRepo.findAllByTenant(tenant, pageable)
                 .map(mapping -> scenarioMapper.toResponse(mapping.getScenario()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<FileErrorResponse> getFileError(Pageable pageable) {
+        // Ensure tenant context is valid
+        getCurrentTenant();
+        
+        return customerErrorRepo.findAll(pageable).map(error -> FileErrorResponse.builder()
+                .identifier(error.getCif())
+                .rawRow(error.getRawRow())
+                .criticalErrors(error.getCriticalErrors())
+                .warningErrors(error.getWarningErrors())
+                .createdAt(error.getCreatedAt())
+                .sourceType("CUSTOMER")
+                .build());
     }
 }

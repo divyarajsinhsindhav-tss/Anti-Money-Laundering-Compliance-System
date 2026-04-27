@@ -19,8 +19,8 @@ public class CreateCaseRequest {
     @NotEmpty(message = "Alert codes cannot be empty")
     private List<String> alertCodes;
 
-    @NotNull(message = "Assigned user ID cannot be null")
-    private UUID assignedToUserId;
+    @NotEmpty(message = "Assigned user code cannot be empty")
+    private String assignedToUserCode;
 
     private String notes;
 }

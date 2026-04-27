@@ -14,6 +14,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.tss.tm.common.constant.TenantConstants;
 import org.tss.tm.tenant.TenantContext;
 
@@ -26,6 +29,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider tokenProvider;
     private final CustomUserDetailsService customUserDetailService;
+
+    @Autowired
+    @Qualifier("handlerExceptionResolver")
+    private HandlerExceptionResolver resolver;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -62,11 +69,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         } catch (BadCredentialsException e) {
             log.error("Security violation: {}", e.getMessage());
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response.getWriter().write("Security Error: " + e.getMessage());
+            resolver.resolveException(request, response, null, e);
             return;
         } catch (Exception e) {
             log.error("Could not set user authentication in security context", e);
+            resolver.resolveException(request, response, null, e);
+            return;
         }
 
         filterChain.doFilter(request, response);

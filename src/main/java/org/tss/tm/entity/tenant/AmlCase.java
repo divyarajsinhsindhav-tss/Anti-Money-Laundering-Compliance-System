@@ -52,6 +52,6 @@ public class AmlCase extends BaseEntity {
     @Column(name = "closed_at")
     private LocalDateTime closedAt;
 
-    @OneToMany(mappedBy = "amlCase", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @OneToMany(mappedBy = "amlCase", cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     private List<Alert> alerts;
 }

@@ -17,6 +17,13 @@ import org.tss.tm.repository.TenantScenarioRepo;
 import org.tss.tm.service.interfaces.AdminService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
+import org.tss.tm.entity.system.ScenarioParameterMaster;
+import org.tss.tm.repository.ScenarioParameterMasterRepo;
+import org.tss.tm.service.interfaces.ScenarioParamService;
+import org.tss.tm.tenant.TenantContext;
+
+import java.util.List;
 
 @Slf4j
 @Service
@@ -27,8 +34,11 @@ public class AdminServiceImpl implements AdminService {
     private final TenantScenarioRepo tenantScenarioRepo;
     private final ScenarioRepo scenarioRepo;
     private final ScenarioMapper scenarioMapper;
+    private final ScenarioParameterMasterRepo scenarioParameterMasterRepo;
+    private final ScenarioParamService scenarioParamService;
 
     @Override
+    @Transactional
     public void assignScenario(AssignScenarioRequest assignScenarioRequest) {
         Tenant tenant = tenantRepo.findByTenantCode(assignScenarioRequest.getTenantCode())
                 .orElseThrow(() -> new ResourceNotFoundException("TENANT", assignScenarioRequest.getTenantCode()));
@@ -43,6 +53,23 @@ public class AdminServiceImpl implements AdminService {
                 .build();
 
         tenantScenarioRepo.save(tenantScenarioMapping);
+
+        // Copy parameters from master to tenant
+        List<ScenarioParameterMaster> masterParams = scenarioParameterMasterRepo.findByScenario_ScenarioId(scenario.getScenarioId());
+        
+        log.info("Found {} master parameters for scenario {}", masterParams.size(), scenario.getScenarioCode());
+
+        if (!masterParams.isEmpty()) {
+            String previousTenant = TenantContext.getCurrentTenant();
+            try {
+                TenantContext.setCurrentTenant(tenant.getSchemaName());
+                scenarioParamService.createParametersFromMaster(scenario, masterParams);
+            } finally {
+                TenantContext.setCurrentTenant(previousTenant);
+            }
+        } else {
+            log.warn("No master parameters found for scenario {}. Skipping parameter copy.", scenario.getScenarioCode());
+        }
     }
 
     @Override

@@ -9,15 +9,19 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.tss.tm.common.response.ApiResponse;
+import org.tss.tm.common.response.PagedResponse;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.tss.tm.common.enums.CaseStatus;
 import org.tss.tm.dto.tenant.request.CreateCaseRequest;
+import org.tss.tm.dto.tenant.response.CaseResponse;
+import org.tss.tm.dto.tenant.response.CreateCaseResponse;
 import org.tss.tm.entity.tenant.AmlCase;
 import org.tss.tm.service.interfaces.CaseService;
 
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
@@ -26,24 +30,51 @@ import java.util.UUID;
 @RequestMapping("/api/v1/cases")
 public class CaseController {
 
-        private final CaseService caseService;
+    private final CaseService caseService;
 
-        @PostMapping
-        @PreAuthorize("hasRole('BANK_ADMIN')")
-        public ResponseEntity<ApiResponse<UUID>> createCase(
-                @Valid @RequestBody CreateCaseRequest request,
-                @AuthenticationPrincipal UserDetails userDetails,
-                HttpServletRequest httpServletRequest
-        ) {
-                log.info("Received request to create case from user: {}", userDetails.getUsername());
-                AmlCase amlCase = caseService.createCase(request, userDetails.getUsername());
-                return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.of(
-                        HttpStatus.CREATED,
-                        "Case created successfully with code: " + amlCase.getCaseCode(),
-                        httpServletRequest.getRequestURI(),
-                        amlCase.getCaseId()
-                ));
-        }
+    @PostMapping
+    @PreAuthorize("hasRole('BANK_ADMIN')")
+    public ResponseEntity<ApiResponse<CreateCaseResponse>> createCase(
+            @Valid @RequestBody CreateCaseRequest request,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest httpServletRequest) {
+        log.info("Received request to create case from user: {}", userDetails.getUsername());
+        AmlCase amlCase = caseService.createCase(request, userDetails.getUsername());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.of(
+                HttpStatus.CREATED,
+                "Case created successfully with code: " + amlCase.getCaseCode(),
+                httpServletRequest.getRequestURI(),
+                CreateCaseResponse.builder()
+                        .caseCode(amlCase.getCaseCode())
+                        .build()));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
+    public ResponseEntity<ApiResponse<PagedResponse<CaseResponse>>> getAllCases(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) CaseStatus status,
+            Pageable pageable,
+            HttpServletRequest httpServletRequest) {
+        log.info("Received request to get all cases with status: {} from user: {}", status,
+                userDetails.getUsername());
+
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_BANK_ADMIN"));
+
+        Page<CaseResponse> cases = caseService.getAllCases(status, userDetails.getUsername(), isAdmin, pageable);
+
+        return ResponseEntity.ok(ApiResponse.of(
+                HttpStatus.OK,
+                "Cases retrieved successfully",
+                httpServletRequest.getRequestURI(),
+                PagedResponse.of(cases.getContent(), cases.getNumber(), cases.getSize(),
+                        cases.getTotalElements(),
+                        cases.getSort().toString(),
+                        cases.getSort().isSorted()
+                                ? cases.getSort().iterator().next().getDirection()
+                                .name()
+                                : "ASC")));
+    }
 
 }

@@ -20,6 +20,8 @@ import org.tss.tm.service.interfaces.TenantUserService;
 import org.tss.tm.exception.BusinessRuleException;
 import org.tss.tm.exception.ResourceNotFoundException;
 
+import java.util.List;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -58,10 +60,18 @@ public class TenantUserServiceImpl implements TenantUserService {
 
     @Override
     @Transactional(readOnly = true)
-    public TenantUserResponse getTenantBasicDetails(String userEmail) {
+    public TenantUserResponse getTenantUserBasicDetails(String userEmail) {
         TenantUser user = tenantUserRepo.findByEmail(userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("User", userEmail));
 
         return userMapper.toTenantUserResponse(user);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserResponse> getAllComplienceOfficer(String userEmail) {
+        log.info("Fetching all compliance officers requested by: {}", userEmail);
+        List<TenantUser> complianceOfficers = tenantUserRepo.findAllByRole(UserRole.COMPLIANCE_OFFICER);
+        return userMapper.toResponseList(complianceOfficers);
     }
 }

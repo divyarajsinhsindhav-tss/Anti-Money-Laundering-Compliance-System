@@ -58,4 +58,7 @@ public class Rule extends BaseEntity {
 //
 //    @ManyToMany
 //    private List<AlertInfo> alertInfos;
+
+    @OneToMany(mappedBy = "rule", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ScenarioParameterMaster> parameterDefinitions;
 }

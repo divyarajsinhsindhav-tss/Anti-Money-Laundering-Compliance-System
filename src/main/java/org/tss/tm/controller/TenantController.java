@@ -16,6 +16,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.tss.tm.dto.tenant.request.TenantRegistrationRequest;
 import org.tss.tm.dto.tenant.response.TenantAvailableResponse;
+import org.tss.tm.dto.tenant.response.FileErrorResponse;
 import org.tss.tm.dto.tenant.response.TenantResponse;
 import org.tss.tm.dto.tenant.response.TenantUserResponse;
 import org.tss.tm.service.interfaces.TenantService;
@@ -38,7 +39,8 @@ public class TenantController {
         public ResponseEntity<ApiResponse<TenantResponse>> registerTenant(
                         @Valid @RequestBody TenantRegistrationRequest request,
                         @AuthenticationPrincipal UserDetails userDetails,
-                        HttpServletRequest httpServletRequest) {
+                        HttpServletRequest httpServletRequest
+        ) {
                 log.info("Received request to register tenant: {} from user: {}", request.getName(),
                                 userDetails.getUsername());
                 TenantResponse response = tenantService.createTenant(request, userDetails.getUsername());
@@ -54,48 +56,72 @@ public class TenantController {
         @GetMapping("/check-tenant-available")
         public ResponseEntity<ApiResponse<TenantAvailableResponse>> checkTenantAvailable(
                         @RequestParam("tenantCode") String tenantCode,
-                        HttpServletRequest httpServletRequest) {
+                        HttpServletRequest httpServletRequest
+        ) {
                 TenantAvailableResponse response = tenantService.tenantAvailable(tenantCode);
                 return ResponseEntity.ok(ApiResponse.of(
-                                HttpStatus.OK,
-                                "Tenant availablity checked successfully.",
-                                httpServletRequest.getRequestURI(),
-                                response));
+                        HttpStatus.OK,
+                        "Tenant availablity checked successfully.",
+                        httpServletRequest.getRequestURI(),
+                        response
+                ));
         }
 
         @GetMapping
         @PreAuthorize("hasRole('SYSTEM_ADMIN')")
         public ResponseEntity<ApiResponse<List<TenantResponse>>> getAllTenants(
-                        HttpServletRequest httpServletRequest) {
+                        HttpServletRequest httpServletRequest
+        ) {
                 log.info("Received request to fetch all tenants");
                 List<TenantResponse> response = tenantService.getAllTenants();
                 return ResponseEntity.ok(ApiResponse.of(
-                                HttpStatus.OK,
-                                "Tenants fetched successfully",
-                                httpServletRequest.getRequestURI(),
-                                response));
+                        HttpStatus.OK,
+                        "Tenants fetched successfully",
+                        httpServletRequest.getRequestURI(),
+                        response
+                ));
         }
 
         @GetMapping("/scenarios")
         @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
         public ResponseEntity<ApiResponse<PagedResponse<ScenarioResponse>>> getScenarios(
                         @PageableDefault(size = 10) Pageable pageable,
-                        HttpServletRequest httpServletRequest) {
+                        HttpServletRequest httpServletRequest
+        ) {
                 Page<ScenarioResponse> scenarios = tenantService.getScenarios(pageable);
 
                 PagedResponse<ScenarioResponse> pageResponse = PagedResponse.of(
-                                scenarios.getContent(),
-                                scenarios.getNumber(),
-                                scenarios.getSize(),
-                                scenarios.getTotalElements(),
-                                pageable.getSort().toString(),
-                                pageable.getSort().isSorted()
-                                                ? pageable.getSort().iterator().next().getDirection().name()
-                                                : "ASC");
+                        scenarios.getContent(),
+                        scenarios.getNumber(),
+                        scenarios.getSize(),
+                        scenarios.getTotalElements(),
+                        pageable.getSort().toString(),
+                        pageable.getSort().isSorted()
+                                        ? pageable.getSort().iterator().next().getDirection().name()
+                                        : "ASC"
+                );
                 return ResponseEntity.ok(ApiResponse.of(
-                                HttpStatus.OK,
-                                "Tenant purchesed history fetched successfully",
-                                httpServletRequest.getRequestURI(),
-                                pageResponse));
+                        HttpStatus.OK,
+                        "Tenant purchesed history fetched successfully",
+                        httpServletRequest.getRequestURI(),
+                        pageResponse
+                ));
         }
+
+        @GetMapping("/file-error")
+        @PreAuthorize("hasRole('BANK_ADMIN')")
+        public ResponseEntity<ApiResponse<Page<FileErrorResponse>>> getFileError(
+                        @PageableDefault(size = 10) Pageable pageable,
+                        HttpServletRequest httpServletRequest
+        ) {
+                log.info("Received request to fetch file errors");
+                Page<FileErrorResponse> errorResponse = tenantService.getFileError(pageable);
+                return ResponseEntity.ok(ApiResponse.of(
+                        HttpStatus.OK,
+                        "File errors fetched successfully",
+                        httpServletRequest.getRequestURI(),
+                        errorResponse
+                ));
+        }
+
 }

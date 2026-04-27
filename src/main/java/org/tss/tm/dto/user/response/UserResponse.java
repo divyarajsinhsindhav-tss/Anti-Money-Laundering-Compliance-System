@@ -13,7 +13,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserResponse {
-    private UUID userId;
     private String userCode;
     private String firstName;
     private String lastName;

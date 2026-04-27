@@ -43,8 +43,7 @@ public class PagedResponse<T> {
             int pageSize,
             long totalElements,
             String sortBy,
-            String sortDirection
-    ) {
+            String sortDirection) {
         int totalPages = (int) Math.ceil((double) totalElements / pageSize);
 
         return PagedResponse.<T>builder()
@@ -64,6 +63,5 @@ public class PagedResponse<T> {
                         .build())
                 .build();
     }
-
 
 }

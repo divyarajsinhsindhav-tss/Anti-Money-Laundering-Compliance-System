@@ -22,6 +22,8 @@ import org.tss.tm.dto.user.response.UserResponse;
 import org.tss.tm.service.interfaces.TenantUserService;
 import org.tss.tm.tenant.TenantContext;
 
+import java.util.List;
+
 @Slf4j
 @RequiredArgsConstructor
 @RestController
@@ -48,16 +50,32 @@ public class TenantUserController {
                 response));
     }
 
-    @GetMapping("/get-tenant-basic-details")
+    @GetMapping("/get-tenant-user-basic-details")
     @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
     public ResponseEntity<ApiResponse<TenantUserResponse>> getTenantBasicDetails(
             @AuthenticationPrincipal UserDetails userDetails,
             HttpServletRequest httpServletRequest
     ) {
-        TenantUserResponse response = tenantUserService.getTenantBasicDetails(userDetails.getUsername());
+        TenantUserResponse response = tenantUserService.getTenantUserBasicDetails(userDetails.getUsername());
         return ResponseEntity.ok(ApiResponse.of(
                 HttpStatus.OK,
                 "Tenant details fetched successfully",
+                httpServletRequest.getRequestURI(),
+                response
+        ));
+    }
+
+    @GetMapping("/complience-officers")
+    @PreAuthorize("hasRole('BANK_ADMIN')")
+    public ResponseEntity<ApiResponse<List<UserResponse>>> getComplianceOfficers(
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest httpServletRequest
+    ) {
+        log.info("Fetching all compliance officers for user: {}", userDetails.getUsername());
+        List<UserResponse> response = tenantUserService.getAllComplienceOfficer(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.of(
+                HttpStatus.OK,
+                "Compliance officers fetched successfully",
                 httpServletRequest.getRequestURI(),
                 response
         ));

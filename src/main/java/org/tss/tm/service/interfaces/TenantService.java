@@ -1,6 +1,7 @@
 package org.tss.tm.service.interfaces;
 
 import org.tss.tm.dto.tenant.request.TenantRegistrationRequest;
+import org.tss.tm.dto.tenant.response.FileErrorResponse;
 import org.tss.tm.dto.tenant.response.TenantAvailableResponse;
 import org.tss.tm.dto.tenant.response.TenantResponse;
 import org.tss.tm.entity.system.Tenant;
@@ -27,4 +28,6 @@ public interface TenantService {
     String getTenantCodeBySchemaName(String schemaName);
 
     Page<ScenarioResponse> getScenarios(Pageable pageable);
+
+    Page<FileErrorResponse> getFileError(Pageable pageable);
 }

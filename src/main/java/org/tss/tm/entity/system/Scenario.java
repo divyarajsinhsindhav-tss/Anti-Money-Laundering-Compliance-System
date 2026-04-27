@@ -52,4 +52,7 @@ public class Scenario extends BaseEntity {
 
     @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TenantScenarioMapping> tenantScenarios;
+
+    @OneToMany(mappedBy = "scenario", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ScenarioParameterMaster> parameterDefinitions;
 }
