@@ -54,7 +54,6 @@ public class FileServiceImpl implements FileService {
             newFile.transferTo(file);
 
             Tenant currentTenant = tenantService.getCurrentTenant();
-            UUID currentTenantId = currentTenant.getTenantId();
             String tenantSchema = currentTenant.getSchemaName();
 
             // UUID currentTenantId =
@@ -64,10 +63,10 @@ public class FileServiceImpl implements FileService {
 
             if (type.equals(JobType.FILE_UPLOAD_TRANSACTION)) {
                 validateHeader(file, FileConstants.expectedTransactionHeader);
-                fileProcessor.loadTransactionCsv(jobId, file, currentTenantId, tenantSchema);
+                fileProcessor.loadTransactionCsv(jobId, file, tenantSchema);
             } else if (type.equals(JobType.FILE_UPLOAD_CUSTOMER)) {
                 validateHeader(file, FileConstants.expectedCustomerHeader);
-                fileProcessor.loadCustomerFile(jobId, file, currentTenantId, tenantSchema);
+                fileProcessor.loadCustomerFile(jobId, file,tenantSchema);
             } else {
                 throw new IllegalArgumentException("Unsupported Job Type");
             }

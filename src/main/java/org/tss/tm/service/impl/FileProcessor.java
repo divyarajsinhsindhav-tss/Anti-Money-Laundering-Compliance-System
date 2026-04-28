@@ -29,7 +29,7 @@ public class FileProcessor {
 
 
     @Async("File Job Executor")
-    public void loadTransactionCsv(UUID jobId, File file, UUID tenantId, String tenantSchemaName) {
+    public void loadTransactionCsv(UUID jobId, File file, String tenantSchemaName) {
         jobService.updateJobStatus(jobId, JobStatus.RUNNING);
         Connection conn = null;
 
@@ -87,10 +87,8 @@ public class FileProcessor {
                 ps.executeUpdate();
             }
 
-            try (PreparedStatement ps = conn.prepareStatement("CALL validate_transactions(?, ?::uuid)")) {
+            try (PreparedStatement ps = conn.prepareStatement("CALL validate_transactions(?")) {
                 ps.setString(1, String.valueOf(jobId));
-
-                ps.setString(2, String.valueOf(tenantId));
 
                 ps.execute();
             }
@@ -130,7 +128,7 @@ public class FileProcessor {
     }
 
     @Async("File Job Executor")
-    public void loadCustomerFile(UUID jobId, File file, UUID tenantId, String tenantSchemaName) {
+    public void loadCustomerFile(UUID jobId, File file, String tenantSchemaName) {
         jobService.updateJobStatus(jobId, JobStatus.RUNNING);
 
         Connection conn = null;
