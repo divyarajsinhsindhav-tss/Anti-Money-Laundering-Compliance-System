@@ -18,6 +18,7 @@ import org.tss.tm.common.enums.CaseStatus;
 import org.tss.tm.dto.tenant.request.CreateCaseRequest;
 import org.tss.tm.dto.tenant.response.CaseResponse;
 import org.tss.tm.dto.tenant.response.CreateCaseResponse;
+import org.tss.tm.dto.tenant.response.CaseDetailResponse;
 import org.tss.tm.entity.tenant.AmlCase;
 import org.tss.tm.service.interfaces.CaseService;
 
@@ -76,5 +77,29 @@ public class CaseController {
                                 .name()
                                 : "ASC")));
     }
+
+    @GetMapping("/{caseCode}")
+    @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
+    public ResponseEntity<ApiResponse<CaseDetailResponse>> getCase(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String caseCode,
+            HttpServletRequest httpServletRequest
+    ) {
+        log.info("Received request to get case details for case code: {} from user: {}", caseCode, userDetails.getUsername());
+        
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_BANK_ADMIN"));
+
+        CaseDetailResponse caseDetail = caseService.getCase(caseCode, userDetails.getUsername(), isAdmin);
+
+        return ResponseEntity.ok(ApiResponse.of(
+                HttpStatus.OK,
+                "Case details retrieved successfully",
+                httpServletRequest.getRequestURI(),
+                caseDetail
+        ));
+    }
+
+
 
 }

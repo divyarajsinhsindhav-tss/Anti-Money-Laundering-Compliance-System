@@ -16,8 +16,8 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 @RestController
-//@RequestMapping("/api/v1/file")
-@RequestMapping("/public/api/v1/file")
+@RequestMapping("/api/v1/file")
+//@RequestMapping("/public/api/v1/file")
 public class FileUploadController {
 
     @Autowired

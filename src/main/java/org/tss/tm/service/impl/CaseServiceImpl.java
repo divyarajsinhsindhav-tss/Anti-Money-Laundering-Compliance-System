@@ -20,13 +20,13 @@ import org.tss.tm.repository.TenantUserRepo;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.tss.tm.dto.tenant.response.CaseResponse;
+import org.tss.tm.dto.tenant.response.CaseDetailResponse;
 import org.tss.tm.mapper.CaseMapper;
-import org.tss.tm.entity.system.Tenant;
+import org.tss.tm.mapper.AlertMapper;
 import org.tss.tm.service.interfaces.CaseService;
 import org.tss.tm.service.interfaces.TenantService;
 
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -39,6 +39,7 @@ public class CaseServiceImpl implements CaseService {
     private final TenantService tenantService;
     private final EntityManager entityManager;
     private final CaseMapper caseMapper;
+    private final AlertMapper alertMapper;
 
     @Override
     @Transactional
@@ -71,9 +72,14 @@ public class CaseServiceImpl implements CaseService {
         AmlCase savedCase = caseRepo.saveAndFlush(amlCase);
         entityManager.refresh(savedCase);
 
+        if (savedCase.getAlerts() == null) {
+            savedCase.setAlerts(new java.util.ArrayList<>());
+        }
+
         for (Alert alert : alerts) {
             alert.setAmlCase(savedCase);
             alert.setAlertStatus(AlertStatus.IN_CASE);
+            savedCase.getAlerts().add(alert);
         }
         alertRepo.saveAll(alerts);
 
@@ -101,5 +107,25 @@ public class CaseServiceImpl implements CaseService {
         }
 
         return cases.map(caseMapper::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CaseDetailResponse getCase(String caseCode, String email, boolean isAdmin) {
+        log.info("Case requested by email: {}, caseCode: {}", email, caseCode);
+
+        AmlCase amlCase = caseRepo.findByCaseCode(caseCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Case", caseCode));
+
+        if (!isAdmin && (amlCase.getAssignedTo() == null || !amlCase.getAssignedTo().getEmail().equals(email))) {
+            throw new BusinessRuleException("You do not have permission to view this case", "ACCESS_DENIED");
+        }
+
+        List<Alert> caseAlerts = alertRepo.findAllByAmlCase_CaseCode(amlCase.getCaseCode());
+
+        return CaseDetailResponse.builder()
+                .caseResponse(caseMapper.toResponse(amlCase))
+                .alerts(alertMapper.toResponseList(caseAlerts))
+                .build();
     }
 }

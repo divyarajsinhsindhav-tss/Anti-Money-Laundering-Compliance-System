@@ -10,7 +10,7 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Table(name = "alert_info") //Bapu: be careful here also, i have removed this constraint also:)
+@Table(name = "alert_info") // Bapu: be careful here also, i have removed this constraint also:)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -26,10 +26,10 @@ public class AlertInfo {
     private Alert alert;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "transaction_id") // Bapu, be careful: changed to nullable
+    @JoinColumn(name = "transaction_id")
     private FinancialTransaction transaction;
 
-    @ManyToOne(fetch = FetchType.LAZY) // Mr. Bapu, be careful: changed to nullable
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "rule_id", nullable = false)
     private Rule rule;
 

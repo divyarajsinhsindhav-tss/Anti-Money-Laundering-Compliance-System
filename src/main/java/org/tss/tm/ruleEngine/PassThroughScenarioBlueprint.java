@@ -1,16 +1,22 @@
 package org.tss.tm.ruleEngine;
 
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
+
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 public class PassThroughScenarioBlueprint implements AmlScenarioBlueprint {
 
     private final UUID scenarioId;
     private final boolean isAggregate=true;
+    private final JdbcTemplate jdbcTemplate;
 
-    public PassThroughScenarioBlueprint(UUID scenarioId) {
+    public PassThroughScenarioBlueprint(UUID scenarioId, JdbcTemplate jdbcTemplate) {
         this.scenarioId = scenarioId;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override

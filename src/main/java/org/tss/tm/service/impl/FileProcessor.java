@@ -87,7 +87,7 @@ public class FileProcessor {
                 ps.executeUpdate();
             }
 
-            try (PreparedStatement ps = conn.prepareStatement("CALL validate_transactions(?")) {
+            try (PreparedStatement ps = conn.prepareStatement("CALL validate_transactions(?)")) {
                 ps.setString(1, String.valueOf(jobId));
 
                 ps.execute();

@@ -12,6 +12,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.tss.tm.common.enums.AlertStatus;
 import org.tss.tm.common.response.ApiResponse;
 import org.tss.tm.common.response.PagedResponse;
+import org.tss.tm.dto.tenant.response.AlertDetailResponse;
 import org.tss.tm.dto.tenant.response.AlertResponse;
 import org.tss.tm.service.interfaces.AlertService;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -71,6 +72,23 @@ public class AlertController {
         return ResponseEntity.ok(ApiResponse.of(
                 HttpStatus.OK,
                 "Alert status updated successfully",
+                httpServletRequest.getRequestURI(),
+                response
+        ));
+    }
+
+    @GetMapping("/{alertCode}")
+    @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIENCE_OFFICER')")
+    public ResponseEntity<ApiResponse<AlertDetailResponse>> getAlert(
+            @AuthenticationPrincipal UserDetails userDetail,
+            @PathVariable String alertCode,
+            HttpServletRequest httpServletRequest
+    ) {
+        AlertDetailResponse response = alertService.getAlert(userDetail.getUsername(), alertCode);
+
+        return ResponseEntity.ok(ApiResponse.of(
+                HttpStatus.OK,
+                "Alert details fetched successfully",
                 httpServletRequest.getRequestURI(),
                 response
         ));
