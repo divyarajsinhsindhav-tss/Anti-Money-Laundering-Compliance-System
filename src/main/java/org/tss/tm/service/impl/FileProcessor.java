@@ -185,11 +185,8 @@ public class FileProcessor {
                 ps.executeUpdate();
             }
 
-            try (PreparedStatement ps = conn.prepareStatement("CALL validate_customers(?, ?::uuid)")) {
+            try (PreparedStatement ps = conn.prepareStatement("CALL validate_customers(?)")) {
                 ps.setString(1, String.valueOf(jobId));
-
-                ps.setString(2, String.valueOf(tenantId));
-
                 ps.execute();
             }
 
