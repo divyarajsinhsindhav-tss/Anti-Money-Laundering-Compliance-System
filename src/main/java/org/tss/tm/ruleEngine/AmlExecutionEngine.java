@@ -39,11 +39,9 @@ public class AmlExecutionEngine {
     private record ExtractedCriminal(UUID customerId, UUID[] involvedTxns) {
     }
 
-    public void executeMultipleTxnScenario(AmlScenarioBlueprint blueprint, LocalDate anchorDate, UUID currentJobId,
-            int effectiveLookback) {
+    public void executeMultipleTxnScenario(AmlScenarioBlueprint blueprint, LocalDate anchorDate, UUID currentJobId, int effectiveLookback) {
 
-        if (blueprint.getRules().isEmpty())
-            return;
+        if (blueprint.getRules().isEmpty()) return;
 
         Map<String, Map<String, Object>> nestedParams = paramService.getParams(blueprint.getScenarioId());
         Map<String, Object> flatSqlParams = new HashMap<>();
@@ -81,8 +79,7 @@ public class AmlExecutionEngine {
         List<Rule> dbRulesForScenario = new ArrayList<>();
         for (String code : ruleCodes) {
             Rule dbRule = dbRuleMap.get(code);
-            if (dbRule == null)
-                throw new IllegalStateException("Missing DB rule: " + code);
+            if (dbRule == null) throw new IllegalStateException("Missing DB rule: " + code);
             dbRulesForScenario.add(dbRule);
         }
 
@@ -92,45 +89,45 @@ public class AmlExecutionEngine {
         Scenario scenarioRef = scenarioRepo.getReferenceById(blueprint.getScenarioId());
         JobRecord jobRef = jobRepo.getReferenceById(currentJobId);
 
-        String insertCombinedSql = """
-                    INSERT INTO alert_info (alert_info_id, alert_id, rule_id, scenario_id, transaction_id)
-                    SELECT gen_random_uuid(), :alertId, :ruleId, :scenarioId, :txnId
-                    WHERE NOT EXISTS (
-                        SELECT 1 FROM alert_info
-                        WHERE alert_id = :alertId AND rule_id = :ruleId AND transaction_id = :txnId
-                    )
+        String insertRuleSql = """
+                    INSERT INTO alert_info (alert_id, rule_id, scenario_id)
+                    VALUES (:alertId, :ruleId, :scenarioId)
+                    ON CONFLICT (alert_id, rule_id) WHERE transaction_id IS NULL DO NOTHING
+                """;
+
+        String insertTxnSql = """
+                    INSERT INTO alert_info (alert_id, transaction_id, scenario_id)
+                    VALUES (:alertId, :txnId, :scenarioId)
+                    ON CONFLICT (alert_id, transaction_id) WHERE rule_id IS NULL DO NOTHING
                 """;
 
         log.info("Executing AML Engine query for scenario {} at anchor {} with effective lookback {}",
                 blueprint.getScenarioId(), anchorDate, effectiveLookback);
 
-        List<ExtractedCriminal> criminals = transactionTemplate.execute(status -> {
-            return jdbcTemplate.query(finalSqlQuery, flatSqlParams, (rs, rowNum) -> {
-                UUID customerId = UUID.fromString(rs.getString("customer_id"));
+        List<ExtractedCriminal> criminals = jdbcTemplate.query(finalSqlQuery, flatSqlParams, (rs, rowNum) -> {
+            UUID customerId = UUID.fromString(rs.getString("customer_id"));
 
-                java.sql.Array sqlArray = rs.getArray("involved_txns");
-                if (sqlArray == null) {
-                    log.warn("SQL Data Issue: Customer {} returned with NULL involved_txns array.", customerId);
-                    return new ExtractedCriminal(customerId, new UUID[0]);
-                }
+            java.sql.Array sqlArray = rs.getArray("involved_txns");
+            if (sqlArray == null) {
+                log.warn("SQL Data Issue: Customer {} returned with NULL involved_txns array.", customerId);
+                return new ExtractedCriminal(customerId, new UUID[0]);
+            }
 
-                Object[] rawArray = (Object[]) sqlArray.getArray();
-                if (rawArray == null || rawArray.length == 0) {
-                    log.warn("SQL Data Issue: Customer {} returned with EMPTY involved_txns array.", customerId);
-                    return new ExtractedCriminal(customerId, new UUID[0]);
-                }
+            Object[] rawArray = (Object[]) sqlArray.getArray();
+            if (rawArray == null || rawArray.length == 0) {
+                log.warn("SQL Data Issue: Customer {} returned with EMPTY involved_txns array.", customerId);
+                return new ExtractedCriminal(customerId, new UUID[0]);
+            }
 
-                UUID[] txns = Arrays.stream(rawArray)
-                        .map(obj -> UUID.fromString(obj.toString()))
-                        .toArray(UUID[]::new);
+            UUID[] txns = Arrays.stream(rawArray)
+                    .map(obj -> UUID.fromString(obj.toString()))
+                    .toArray(UUID[]::new);
 
-                return new ExtractedCriminal(customerId, txns);
-            });
+            return new ExtractedCriminal(customerId, txns);
         });
 
         for (ExtractedCriminal criminal : criminals) {
-            if (criminal.involvedTxns().length == 0)
-                continue;
+            if (criminal.involvedTxns().length == 0) continue;
 
             List<UUID> allInvolvedTxns = Arrays.asList(criminal.involvedTxns());
 
@@ -140,14 +137,13 @@ public class AmlExecutionEngine {
             List<UUID> netNewEvidence = new ArrayList<>(allInvolvedTxns);
             netNewEvidence.removeAll(alreadyFlaggedTxns);
 
-            if (netNewEvidence.isEmpty())
-                continue;
+            if (netNewEvidence.isEmpty()) continue;
 
             transactionTemplate.execute(status -> {
                 try {
-                    Optional<Alert> existingAlert = alertRepo
-                            .findByCustomer_CustomerIdAndScenario_ScenarioIdAndAlertStatus(
-                                    criminal.customerId(), blueprint.getScenarioId(), AlertStatus.OPEN);
+                    Optional<Alert> existingAlert = alertRepo.findByCustomer_CustomerIdAndScenario_ScenarioIdAndAlertStatus(
+                            criminal.customerId(), blueprint.getScenarioId(), AlertStatus.OPEN
+                    );
                     Alert targetAlert;
 
                     if (existingAlert.isPresent()) {
@@ -157,40 +153,41 @@ public class AmlExecutionEngine {
                     } else {
                         Alert alert = new Alert();
                         alert.setAlertStatus(AlertStatus.OPEN);
-                        alert.setAlertCode("ALT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
                         alert.setJob(jobRef);
                         alert.setScenario(scenarioRef);
                         alert.setCustomer(customerRepo.getReferenceById(criminal.customerId()));
                         targetAlert = alertRepo.saveAndFlush(alert);
                     }
 
-                    List<MapSqlParameterSource> combinedBatchArgs = new ArrayList<>();
+
+                    List<MapSqlParameterSource> ruleBatchArgs = new ArrayList<>();
                     for (Rule dbRule : dbRulesForScenario) {
-                        for (UUID newTxnId : netNewEvidence) {
-                            MapSqlParameterSource args = new MapSqlParameterSource()
-                                    .addValue("alertId", targetAlert.getAlertId())
-                                    .addValue("ruleId", dbRule.getRuleId())
-                                    .addValue("txnId", newTxnId)
-                                    .addValue("scenarioId", blueprint.getScenarioId());
-                            combinedBatchArgs.add(args);
-                        }
+                        MapSqlParameterSource ruleArgs = new MapSqlParameterSource()
+                                .addValue("alertId", targetAlert.getAlertId())
+                                .addValue("ruleId", dbRule.getRuleId())
+                                .addValue("scenarioId", blueprint.getScenarioId());
+                        ruleBatchArgs.add(ruleArgs);
+                    }
+                    jdbcTemplate.batchUpdate(insertRuleSql, ruleBatchArgs.toArray(new MapSqlParameterSource[0]));
+
+                    List<MapSqlParameterSource> txnBatchArgs = new ArrayList<>();
+                    for (UUID newTxnId : netNewEvidence) {
+                        MapSqlParameterSource txnArgs = new MapSqlParameterSource()
+                                .addValue("alertId", targetAlert.getAlertId())
+                                .addValue("txnId", newTxnId)
+                                .addValue("scenarioId", blueprint.getScenarioId());
+                        txnBatchArgs.add(txnArgs);
                     }
 
                     int BATCH_SIZE = 500;
-                    for (int j = 0; j < combinedBatchArgs.size(); j += BATCH_SIZE) {
-                        List<MapSqlParameterSource> chunk = combinedBatchArgs.subList(j,
-                                Math.min(j + BATCH_SIZE, combinedBatchArgs.size()));
-                        jdbcTemplate.batchUpdate(insertCombinedSql, chunk.toArray(new MapSqlParameterSource[0]));
+                    for (int j = 0; j < txnBatchArgs.size(); j += BATCH_SIZE) {
+                        List<MapSqlParameterSource> chunk = txnBatchArgs.subList(j, Math.min(j + BATCH_SIZE, txnBatchArgs.size()));
+                        jdbcTemplate.batchUpdate(insertTxnSql, chunk.toArray(new MapSqlParameterSource[0]));
                     }
                 } catch (DataIntegrityViolationException e) {
-                    Throwable root = e.getRootCause();
-                    if (root instanceof org.postgresql.util.PSQLException &&
-                            root.getMessage().contains("duplicate key")) {
-
-                        log.info("Concurrency case...");
-                    } else {
-                        throw e; // rethrow real problem
-                    }
+                    log.info("Concurrency Guard: Open alert already exists for customer {} under scenario {}. Skipping.",
+                            criminal.customerId(), blueprint.getScenarioId());
+                    status.setRollbackOnly();
                 } catch (Exception e) {
                     log.error("Failed to save alert for customer {}", criminal.customerId(), e);
                     status.setRollbackOnly();
@@ -200,24 +197,19 @@ public class AmlExecutionEngine {
         }
     }
 
-    public void executeSingleTxnScenario(AmlScenarioBlueprint blueprint, LocalDate anchorDate, UUID currentJobId,
-            int effectiveLookback) {
-        if (blueprint.getRules().isEmpty())
-            return;
+    public void executeSingleTxnScenario(AmlScenarioBlueprint blueprint, LocalDate anchorDate, UUID currentJobId) {
+        if (blueprint.getRules().isEmpty()) return;
 
         Map<String, Map<String, Object>> nestedParams = paramService.getParams(blueprint.getScenarioId());
         Map<String, Object> flatSqlParams = new HashMap<>();
         flatSqlParams.put("ANCHOR_DATE", anchorDate);
-        flatSqlParams.put("LOOKBACK_DAYS", effectiveLookback);
 
         List<String> ruleCodes = new ArrayList<>();
         for (AmlRule rule : blueprint.getRules()) {
             ruleCodes.add(rule.getRuleCode());
             Map<String, Object> ruleParams = nestedParams.getOrDefault(rule.getRuleCode(), Collections.emptyMap());
             for (Map.Entry<String, Object> param : ruleParams.entrySet()) {
-                if (!param.getKey().equals("LOOKBACK_DAYS")) {
-                    flatSqlParams.put(rule.getRuleCode() + "_" + param.getKey(), param.getValue());
-                }
+                flatSqlParams.put(rule.getRuleCode() + "_" + param.getKey(), param.getValue());
             }
         }
 
@@ -230,75 +222,57 @@ public class AmlExecutionEngine {
         String finalSqlQuery = blueprint.getBaseSqlTemplate();
 
         String insert1to1Sql = """
-                    INSERT INTO alert_info (alert_info_id, alert_id, rule_id, scenario_id, transaction_id)
-                    SELECT gen_random_uuid(), :alertId, :ruleId, :scenarioId, :txnId
-                    WHERE NOT EXISTS (
-                        SELECT 1 FROM alert_info
-                        WHERE scenario_id = :scenarioId AND rule_id = :ruleId AND transaction_id = :txnId
-                    )
+                    INSERT INTO alert_info (alert_id, rule_id, scenario_id, transaction_id)
+                    VALUES (:alertId, :ruleId, :scenarioId, :txnId)
+                    ON CONFLICT (scenario_id, rule_id, transaction_id) DO NOTHING
                 """;
 
-        record SingleTxnResult(UUID customerId, UUID txnId, UUID brokenRuleId) {
-        }
+        jdbcTemplate.query(finalSqlQuery, flatSqlParams, rs -> {
+            UUID customerId = UUID.fromString(rs.getString("customer_id"));
+            String txnStr = rs.getString("transaction_id");
+            if (txnStr == null) {
+                log.warn("Missing transaction_id for customer {}", customerId);
+                return;
+            }
+            UUID txnId = UUID.fromString(txnStr);
 
-        List<SingleTxnResult> results = transactionTemplate.execute(status -> {
-            return jdbcTemplate.query(finalSqlQuery, flatSqlParams, (rs, rowNum) -> {
-                UUID customerId = UUID.fromString(rs.getString("customer_id"));
-                String txnStr = rs.getString("transaction_id");
-                if (txnStr == null) {
-                    log.warn("Missing transaction_id for customer {}", customerId);
-                    return null;
-                }
-                UUID txnId = UUID.fromString(txnStr);
+            String brokenRuleCode = rs.getString("rule_code");
+            if (brokenRuleCode == null) return;
 
-                String brokenRuleCode = rs.getString("rule_code");
-                if (brokenRuleCode == null)
-                    return null;
-
-                Rule dbRule = dbRuleMap.get(brokenRuleCode);
-                if (dbRule == null) {
-                    log.error("Rule mapping missing for rule_code {}", brokenRuleCode);
-                    return null;
-                }
-                return new SingleTxnResult(customerId, txnId, dbRule.getRuleId());
-            });
-        });
-
-        if (results == null)
-            return;
-
-        for (SingleTxnResult res : results) {
-            if (res == null)
-                continue;
+            Rule dbRule = dbRuleMap.get(brokenRuleCode);
+            if (dbRule == null) {
+                log.error("Rule mapping missing for rule_code {}", brokenRuleCode);
+                return;
+            }
+            UUID brokenRuleId = dbRule.getRuleId();
 
             transactionTemplate.execute(status -> {
                 try {
                     Alert targetAlert = alertRepo.findByCustomer_CustomerIdAndScenario_ScenarioIdAndAlertStatus(
-                            res.customerId(), blueprint.getScenarioId(), AlertStatus.OPEN)
+                                    customerId, blueprint.getScenarioId(), AlertStatus.OPEN)
                             .orElseGet(() -> {
                                 Alert newAlert = new Alert();
                                 newAlert.setAlertStatus(AlertStatus.OPEN);
-                                newAlert.setAlertCode("ALT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
                                 newAlert.setJob(jobRef);
                                 newAlert.setScenario(scenarioRef);
-                                newAlert.setCustomer(customerRepo.getReferenceById(res.customerId()));
+                                newAlert.setCustomer(customerRepo.getReferenceById(customerId));
                                 return alertRepo.saveAndFlush(newAlert);
                             });
 
                     MapSqlParameterSource args = new MapSqlParameterSource()
                             .addValue("alertId", targetAlert.getAlertId())
-                            .addValue("ruleId", res.brokenRuleId())
-                            .addValue("txnId", res.txnId())
+                            .addValue("ruleId", brokenRuleId)
+                            .addValue("txnId", txnId)
                             .addValue("scenarioId", blueprint.getScenarioId());
 
                     jdbcTemplate.update(insert1to1Sql, args);
 
                 } catch (DataIntegrityViolationException e) {
-                    log.error("Integrity violation skipped txn {}: {}", res.txnId(), e.getMessage(), e);
+                    log.info("Concurrency Guard skipped txn {}", txnId);
                     status.setRollbackOnly();
                 }
                 return null;
             });
-        }
+        });
     }
 }
