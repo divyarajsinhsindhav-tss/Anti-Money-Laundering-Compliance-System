@@ -2,53 +2,63 @@ package org.tss.tm.ruleEngine;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.tss.tm.common.enums.JobStatus;
+import org.tss.tm.entity.system.Scenario;
+import org.tss.tm.repository.ScenarioRepo;
+import org.tss.tm.service.interfaces.JobService;
+import org.tss.tm.service.interfaces.TenantService;
 
-import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Slf4j
-@Service
 @RequiredArgsConstructor
+@Service
 public class AmlExecutor {
 
-    private final AmlExecutionEngine engine;
+    private final ScenarioFactory scenarioFactory;
+    private final ScenarioExecutor scenarioExecutor;
+    private final TenantService tenantService;
+    private final JobService jobService;
 
-    public void runScenario(AmlScenarioBlueprint blueprint, int lookbackDays, int adminDays, UUID jobId) {
+    @Async("Rule Engine Executor")
+    public void executeAmlJob(UUID currentJobId, List<Scenario> activeScenarios){
+        int successCount = 0;
+        int failureCount = 0;
 
-        if (adminDays <= 0 || lookbackDays <= 0) {
-            throw new IllegalArgumentException("Days must be positive integer values.");
+        String tenantCode=tenantService.getCurrentTenant().getTenantCode();
+        jobService.updateJobStatus(currentJobId, JobStatus.RUNNING);
+
+        for (Scenario dbScenario : activeScenarios) {
+            String scenarioCode = dbScenario.getScenarioCode();
+            UUID scenarioId = dbScenario.getScenarioId();
+
+            try {
+                AmlScenarioBlueprint blueprint = scenarioFactory.getBlueprint(scenarioCode, scenarioId);
+
+                scenarioExecutor.runScenario(blueprint, currentJobId);
+
+                successCount++;
+                log.info("Successfully processed Scenario: {}", scenarioCode);
+
+            } catch (IllegalArgumentException e) {
+                failureCount++;
+                log.error("Configuration Error in Scenario {}: {}", scenarioCode, e.getMessage());
+            } catch (Exception e) {
+                failureCount++;
+                log.error("Critical Failure executing Scenario {}. Skipping to next.", scenarioCode, e);
+            }
         }
 
-        LocalDate today = LocalDate.now();
-        if (adminDays <= lookbackDays) {
-
-            int effectiveLookback = Math.min(adminDays, lookbackDays);
-
-            if (adminDays < lookbackDays) {
-                log.warn("Partial execution: required {} days, provided {}. Engine will use effective lookback of {}", lookbackDays, adminDays, effectiveLookback);
-            } else {
-                log.info("Snapshot execution for exactly {} days.", lookbackDays);
-            }
-
-            if (blueprint.isAggregateScenario()) {
-                engine.executeMultipleTxnScenario(blueprint, today, jobId, effectiveLookback);
-            } else {
-                engine.executeSingleTxnScenario(blueprint, today, jobId);
-            }
+        if(successCount==0){
+            jobService.updateJobStatus(currentJobId, JobStatus.FAILED);
+            log.warn("Job Execution Failed for Tenant: {}",tenantCode);
             return;
         }
-
-        int totalWindows = adminDays - lookbackDays + 1;
-
-        for (int i = 0; i < totalWindows; i++) {
-            LocalDate anchor = today.minusDays(i);
-
-            if (blueprint.isAggregateScenario()) {
-                engine.executeMultipleTxnScenario(blueprint, anchor, jobId, lookbackDays);
-            } else {
-                engine.executeSingleTxnScenario(blueprint, anchor, jobId);
-            }
-        }
+        jobService.updateJobStatus(currentJobId,JobStatus.COMPLETED);
+        log.info("AML Job Completed for Tenant {}. Success: {}, Failed: {}",
+                tenantCode, successCount, failureCount);
     }
 }

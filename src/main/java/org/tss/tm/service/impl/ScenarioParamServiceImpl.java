@@ -47,8 +47,15 @@ public class ScenarioParamServiceImpl implements ScenarioParamService {
         Map<String, Map<String, Object>> params = new HashMap<>();
 
         for(ScenarioParam param : activeParams){
-            String ruleCode = param.getRule().getRuleCode();
-            String paramKey = param.getParamKey().toUpperCase();
+            String ruleCode;
+            String paramKey;
+            if(param.getRule()==null){
+                ruleCode="COMMON";
+                paramKey=param.getParamKey().toUpperCase();
+            }else{
+                ruleCode = param.getRule().getRuleCode();
+                paramKey = param.getParamKey().toUpperCase();
+            }
 
             Map<String, Object> ruleParams = params.computeIfAbsent(ruleCode, k -> new HashMap<>());
 

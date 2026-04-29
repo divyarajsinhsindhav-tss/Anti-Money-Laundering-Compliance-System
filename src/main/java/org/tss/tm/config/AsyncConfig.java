@@ -34,5 +34,17 @@ public class AsyncConfig {
         return  threadPoolExecutor;
     }
 
+    @Bean("Rule Engine Executor")
+    public Executor ruleEngineExecutor(){
+        ThreadPoolTaskExecutor threadPoolExecutor = new ThreadPoolTaskExecutor();
+        threadPoolExecutor.setCorePoolSize(5);
+        threadPoolExecutor.setMaxPoolSize(10);
+        threadPoolExecutor.setQueueCapacity(100);
+        threadPoolExecutor.setThreadNamePrefix("RuleEngineJob-");
+        threadPoolExecutor.initialize();
+        return  threadPoolExecutor;
+    }
+
+
 }
 

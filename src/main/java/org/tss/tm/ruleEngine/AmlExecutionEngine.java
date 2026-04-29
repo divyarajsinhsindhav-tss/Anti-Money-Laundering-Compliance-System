@@ -42,16 +42,14 @@ public class AmlExecutionEngine {
     private record ExtractedCriminal(UUID customerId, UUID[] involvedTxns) {
     }
 
-    public void executeMultipleTxnScenario(AmlScenarioBlueprint blueprint, LocalDate anchorDate, UUID currentJobId,
-                                           int effectiveLookback) {
+    public void executeMultipleTxnScenario(AmlScenarioBlueprint blueprint, Map<String, Map<String, Object>> nestedParams, LocalDate anchorDate, UUID currentJobId, int lookbackDays) {
 
         if (blueprint.getRules().isEmpty())
             return;
 
-        Map<String, Map<String, Object>> nestedParams = paramService.getParams(blueprint.getScenarioId());
         Map<String, Object> flatSqlParams = new HashMap<>();
+        flatSqlParams.put("LOOKBACK_DAYS",lookbackDays);
 
-        flatSqlParams.put("LOOKBACK_DAYS", effectiveLookback);
         flatSqlParams.put("ANCHOR_DATE", anchorDate);
 
         for (Map.Entry<String, Map<String, Object>> ruleEntry : nestedParams.entrySet()) {
@@ -110,7 +108,7 @@ public class AmlExecutionEngine {
                     ON CONFLICT (alert_id, transaction_id) WHERE rule_id IS NULL DO NOTHING
                 """;
         log.info("Executing AML Engine query for scenario {} at anchor {} with effective lookback {}",
-                blueprint.getScenarioId(), anchorDate, effectiveLookback);
+                blueprint.getScenarioId(), anchorDate, lookbackDays);
 
         List<ExtractedCriminal> criminals = jdbcTemplate.query(finalSqlQuery, flatSqlParams, (rs, rowNum) -> {
             UUID customerId = UUID.fromString(rs.getString("customer_id"));
@@ -208,11 +206,10 @@ public class AmlExecutionEngine {
 
     record SingleTxnResult(UUID customerId, UUID txnId, UUID brokenRuleId) {}
 
-    public void executeSingleTxnScenario(AmlScenarioBlueprint blueprint, LocalDate anchorDate, UUID currentJobId) {
+    public void executeSingleTxnScenario(AmlScenarioBlueprint blueprint,Map<String, Map<String, Object>> nestedParams, LocalDate anchorDate, UUID currentJobId) {
         if (blueprint.getRules().isEmpty())
             return;
 
-        Map<String, Map<String, Object>> nestedParams = paramService.getParams(blueprint.getScenarioId());
         Map<String, Object> flatSqlParams = new HashMap<>();
         flatSqlParams.put("ANCHOR_DATE", anchorDate);
 

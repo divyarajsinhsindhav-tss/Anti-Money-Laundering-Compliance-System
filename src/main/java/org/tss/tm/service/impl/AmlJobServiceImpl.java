@@ -3,13 +3,16 @@ package org.tss.tm.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.tss.tm.common.enums.JobStatus;
 import org.tss.tm.common.enums.JobType;
-import org.tss.tm.entity.system.JobRecord;
+import org.tss.tm.dto.tenant.response.RuleEngineResponse;
 import org.tss.tm.entity.system.Scenario;
+import org.tss.tm.exception.ResourceNotFoundException;
 import org.tss.tm.repository.ScenarioRepo;
-import org.tss.tm.ruleEngine.AmlExecutionEngine;
 import org.tss.tm.ruleEngine.AmlExecutor;
+import org.tss.tm.ruleEngine.ScenarioExecutor;
 import org.tss.tm.ruleEngine.AmlScenarioBlueprint;
 import org.tss.tm.ruleEngine.ScenarioFactory;
 import org.tss.tm.service.interfaces.AmlJobService;
@@ -25,13 +28,12 @@ import java.util.UUID;
 public class AmlJobServiceImpl implements AmlJobService {
 
     private final ScenarioRepo scenarioRepo;
-    private final ScenarioFactory scenarioFactory;
-    private final AmlExecutor amlExecutor;
     private final TenantService tenantService;
     private final JobService jobService;
+    private final AmlExecutor amlExecutor;
 
     @Override
-    public void executeTenantScenarios(int adminDays) {
+    public RuleEngineResponse executeTenantScenarios() {
 
         UUID tenantId= tenantService.getCurrentTenant().getTenantId();
         UUID currentJobId =jobService.createNewJob(JobType.RULE_ENGINE).getJobId();
@@ -39,35 +41,10 @@ public class AmlJobServiceImpl implements AmlJobService {
         List<Scenario> activeScenarios = scenarioRepo.findActiveScenariosByTenantId(tenantId);
 
         if (activeScenarios.isEmpty()) {
-            log.warn("No active scenarios found for {}.", tenantId);
-            return;
+            throw new ResourceNotFoundException("No Active Scenario Found.", new Scenario());
         }
+        amlExecutor.executeAmlJob(currentJobId, activeScenarios);
 
-        int successCount = 0;
-        int failureCount = 0;
-
-        for (Scenario dbScenario : activeScenarios) {
-            String scenarioCode = dbScenario.getScenarioCode();
-            UUID scenarioId = dbScenario.getScenarioId();
-
-            try {
-                AmlScenarioBlueprint blueprint = scenarioFactory.getBlueprint(scenarioCode, scenarioId);
-
-                amlExecutor.runScenario(blueprint, 30, adminDays, currentJobId);
-
-                successCount++;
-                log.info("Successfully processed Scenario: {}", scenarioCode);
-
-            } catch (IllegalArgumentException e) {
-                failureCount++;
-                log.error("Configuration Error in Scenario {}: {}", scenarioCode, e.getMessage());
-            } catch (Exception e) {
-                failureCount++;
-                log.error("Critical Failure executing Scenario {}. Skipping to next.", scenarioCode, e);
-            }
-        }
-
-        log.info("AML Job Completed for Tenant {}. Success: {}, Failed: {}",
-                tenantId, successCount, failureCount);
+        return RuleEngineResponse.builder().jobId(String.valueOf(currentJobId)).build();
     }
 }

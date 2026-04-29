@@ -12,11 +12,9 @@ public class PassThroughScenarioBlueprint implements AmlScenarioBlueprint {
 
     private final UUID scenarioId;
     private final boolean isAggregate=true;
-    private final JdbcTemplate jdbcTemplate;
 
-    public PassThroughScenarioBlueprint(UUID scenarioId, JdbcTemplate jdbcTemplate) {
+    public PassThroughScenarioBlueprint(UUID scenarioId ) {
         this.scenarioId = scenarioId;
-        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
@@ -32,8 +30,8 @@ public class PassThroughScenarioBlueprint implements AmlScenarioBlueprint {
     @Override
     public List<AmlRule> getRules() {
         return List.of(
-                new HighCreditTurnoverRule(),
-                new HighDebitTurnoverRule(),
+                new CreditToIncomeRatioRule(),
+                new DebitToIncomeRatioRule(),
                 new LowNetRetentionRule()
         );
     }
@@ -51,9 +49,12 @@ public class PassThroughScenarioBlueprint implements AmlScenarioBlueprint {
                     a.customer_id,
                     SUM(CASE WHEN ft.direction = 'IN' THEN ft.amount ELSE 0 END) AS total_credits,
                     SUM(CASE WHEN ft.direction = 'OUT' THEN ft.amount ELSE 0 END) AS total_debits,
-                    ARRAY_AGG(ft.transaction_id) AS involved_txns
+                    ARRAY_AGG(ft.transaction_id) AS involved_txns,
+                    c.income AS customerIncome
+                    
                 FROM financial_transaction ft
                 JOIN account a ON ft.account_id = a.account_id
+                JOIN customer c ON a.customer_id = c.customer_id
                 WHERE ft.txn_timestamp >= CAST(:ANCHOR_DATE AS TIMESTAMP) - CAST(:LOOKBACK_DAYS || ' days' AS INTERVAL)
                   AND ft.txn_timestamp <= CAST(:ANCHOR_DATE AS TIMESTAMP)
                 GROUP BY a.customer_id

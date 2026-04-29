@@ -12,7 +12,7 @@ public class ScenarioFactory {
     public AmlScenarioBlueprint getBlueprint(String scenarioCode, UUID scenarioId) {
 
         return switch (scenarioCode.toUpperCase()) {
-            case "PASS_THROUGH" -> new PassThroughScenarioBlueprint(scenarioId, new JdbcTemplate());
+            case "S1_PASS_THROUGH" -> new PassThroughScenarioBlueprint(scenarioId);
 
             default -> throw new IllegalArgumentException("Unsupported Scenario Code found in database: " + scenarioCode);
         };
