@@ -10,13 +10,14 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.tss.tm.common.response.ApiResponse;
 import org.tss.tm.common.response.PagedResponse;
-import org.tss.tm.dto.admin.response.ScenarioResponse;
+import org.tss.tm.dto.tenant.response.ScenarioResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.tss.tm.dto.tenant.request.TenantRegistrationRequest;
 import org.tss.tm.dto.tenant.response.TenantAvailableResponse;
 import org.tss.tm.dto.tenant.response.FileErrorResponse;
+import org.tss.tm.dto.tenant.response.TenantDetailResponse;
 import org.tss.tm.dto.tenant.response.TenantResponse;
 import org.tss.tm.dto.tenant.response.TenantUserResponse;
 import org.tss.tm.service.interfaces.TenantService;
@@ -121,6 +122,22 @@ public class TenantController {
                         "File errors fetched successfully",
                         httpServletRequest.getRequestURI(),
                         errorResponse
+                ));
+        }
+
+        @GetMapping("/{tenantCode}")
+        @PreAuthorize("hasAnyRole('BANK_ADMIN', 'SYSTEM_ADMIN', 'COMPLIANCE_OFFICER')")
+        public ResponseEntity<ApiResponse<TenantDetailResponse>> getTenant(
+                        @PathVariable String tenantCode,
+                        HttpServletRequest httpServletRequest
+        ) {
+                log.info("Received request to fetch tenant details for code: {}", tenantCode);
+                TenantDetailResponse response = tenantService.getTenantDetail(tenantCode);
+                return ResponseEntity.ok(ApiResponse.of(
+                                HttpStatus.OK,
+                                "Tenant details fetched successfully",
+                                httpServletRequest.getRequestURI(),
+                                response
                 ));
         }
 

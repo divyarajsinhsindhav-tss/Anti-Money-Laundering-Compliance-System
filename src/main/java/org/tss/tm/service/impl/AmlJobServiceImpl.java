@@ -43,7 +43,8 @@ public class AmlJobServiceImpl implements AmlJobService {
         if (activeScenarios.isEmpty()) {
             throw new ResourceNotFoundException("No Active Scenario Found.", new Scenario());
         }
-        amlExecutor.executeAmlJob(currentJobId, activeScenarios);
+        String tenantName = tenantService.getCurrentTenant().getSchemaName();
+        amlExecutor.executeAmlJob(currentJobId, activeScenarios, tenantName);
 
         return RuleEngineResponse.builder().jobId(String.valueOf(currentJobId)).build();
     }

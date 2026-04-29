@@ -6,8 +6,11 @@ import org.springframework.data.domain.Pageable;
 import org.tss.tm.entity.system.Tenant;
 import org.tss.tm.entity.system.TenantScenarioMapping;
 
+import java.util.List;
 import java.util.UUID;
 
 public interface TenantScenarioRepo extends JpaRepository<TenantScenarioMapping, UUID> {
     Page<TenantScenarioMapping> findAllByTenant(Tenant tenant, Pageable pageable);
+    List<TenantScenarioMapping> findAllByTenant(Tenant tenant);
+    long countByTenant(Tenant tenant);
 }

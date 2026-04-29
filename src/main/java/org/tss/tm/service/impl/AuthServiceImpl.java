@@ -18,6 +18,7 @@ import org.tss.tm.dto.user.request.ChangePasswordRequest;
 import org.tss.tm.dto.user.request.LoginRequest;
 import org.tss.tm.dto.user.response.AuthResponse;
 import org.tss.tm.dto.user.response.ChangePasswordResponse;
+import org.tss.tm.dto.user.response.UserResponse;
 import org.tss.tm.entity.system.SystemAdmin;
 import org.tss.tm.entity.tenant.TenantUser;
 import org.tss.tm.repository.SystemAdminRepo;
@@ -28,6 +29,7 @@ import org.tss.tm.service.interfaces.AuthService;
 import org.tss.tm.tenant.TenantContext;
 import org.tss.tm.exception.BusinessRuleException;
 import org.tss.tm.exception.ResourceNotFoundException;
+import org.tss.tm.mapper.UserMapper;
 
 import java.util.function.Consumer;
 
@@ -41,6 +43,7 @@ public class AuthServiceImpl implements AuthService {
     private final TenantUserRepo tenantUserRepo;
     private final SystemAdminRepo systemAdminRepo;
     private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
 
     @Override
     @Transactional
@@ -150,6 +153,22 @@ public class AuthServiceImpl implements AuthService {
         }
 
         passwordSetter.accept(passwordEncoder.encode(newPassword));
+    }
+
+    @Override
+    public UserResponse getCurrentUser(String email) {
+        log.info("Fetching current user profile for: {}", email);
+        String currentTenant = TenantContext.getCurrentTenant();
+
+        if (TenantConstants.DEFAULT_TENANT.equals(currentTenant)) {
+            SystemAdmin sysAdmin = systemAdminRepo.findByEmail(email)
+                    .orElseThrow(() -> new ResourceNotFoundException("SystemAdmin", email));
+            return userMapper.toResponse(sysAdmin);
+        } else {
+            TenantUser tenantUser = tenantUserRepo.findByEmail(email)
+                    .orElseThrow(() -> new ResourceNotFoundException("TenantUser", email));
+            return userMapper.toResponse(tenantUser);
+        }
     }
 
 }

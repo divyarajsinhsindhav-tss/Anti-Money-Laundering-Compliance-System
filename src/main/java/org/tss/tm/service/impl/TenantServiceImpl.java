@@ -9,12 +9,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.tss.tm.common.constant.TenantConstants;
 import org.tss.tm.common.enums.UserRole;
-import org.tss.tm.dto.admin.response.ScenarioResponse;
+import org.tss.tm.dto.tenant.response.ScenarioResponse;
 import org.tss.tm.dto.tenant.request.TenantAdminRegistrationRequest;
 import org.tss.tm.dto.tenant.request.TenantRegistrationRequest;
 import org.tss.tm.dto.tenant.response.FileErrorResponse;
 import org.tss.tm.dto.tenant.response.TenantAvailableResponse;
+import org.tss.tm.dto.tenant.response.TenantDetailResponse;
 import org.tss.tm.dto.tenant.response.TenantResponse;
+import org.tss.tm.entity.system.JobRecord;
 import org.tss.tm.entity.system.SystemAdmin;
 import org.tss.tm.entity.system.Tenant;
 import org.tss.tm.entity.tenant.TenantUser;
@@ -59,6 +61,7 @@ public class TenantServiceImpl implements TenantService {
     private final ScenarioMapper scenarioMapper;
     private final CustomerErrorRepo customerErrorRepo;
     private final TransactionErrorRepo transactionErrorRepo;
+    private final JobRepo jobRepo;
 
     @Override
     public TenantResponse createTenant(TenantRegistrationRequest request, String email) {
@@ -179,6 +182,7 @@ public class TenantServiceImpl implements TenantService {
     @Override
     public Tenant getCurrentTenant() {
         String schemaName = TenantContext.getCurrentTenant();
+        System.out.println("schemaName: " + schemaName);
         if (schemaName == null || schemaName.isEmpty()) {
             throw new ResourceNotFoundException("Tenant context is missing", "CONTEXT_MISSING");
         }
@@ -200,7 +204,7 @@ public class TenantServiceImpl implements TenantService {
     public Page<ScenarioResponse> getScenarios(Pageable pageable) {
         Tenant tenant = getCurrentTenant();
         return tenantScenarioRepo.findAllByTenant(tenant, pageable)
-                .map(mapping -> scenarioMapper.toResponse(mapping.getScenario()));
+                .map(mapping -> scenarioMapper.toTenantResponse(mapping.getScenario()));
     }
 
     @Override
@@ -217,5 +221,28 @@ public class TenantServiceImpl implements TenantService {
                 .createdAt(error.getCreatedAt())
                 .sourceType("CUSTOMER")
                 .build());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TenantDetailResponse getTenantDetail(String tenantCode) {
+        log.info("Fetching tenant details for code: {}", tenantCode);
+        Tenant tenant = tenantRepo.findByTenantCode(tenantCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantCode));
+
+        List<ScenarioResponse> subscribedScenarios = tenantScenarioRepo.findAllByTenant(tenant)
+                .stream()
+                .map(mapping -> scenarioMapper.toTenantResponse(mapping.getScenario()))
+                .toList();
+
+        long jobRunCount = jobRepo.countByTenant(tenant);
+        List<JobRecord> jobHistory = jobRepo.findByTenantOrderByCreatedAtDesc(tenant);
+
+        return TenantDetailResponse.builder()
+                .tenant(tenantMapper.toResponse(tenant))
+                .subscribedScenarios(subscribedScenarios)
+                .jobRunCount(jobRunCount)
+                .jobHistory(tenantMapper.toJobResponseList(jobHistory))
+                .build();
     }
 }

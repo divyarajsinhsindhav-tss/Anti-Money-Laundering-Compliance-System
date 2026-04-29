@@ -12,6 +12,8 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface ScenarioMapper {
     ScenarioResponse toResponse(Scenario scenario);
+
+    org.tss.tm.dto.tenant.response.ScenarioResponse toTenantResponse(Scenario scenario);
     
     @Mapping(target = "tenants", source = "tenantScenarios")
     ScenarioDetailResponse toDetailResponse(Scenario scenario);
@@ -21,4 +23,6 @@ public interface ScenarioMapper {
     ScenarioDetailResponse.TenantInfo toTenantInfo(TenantScenarioMapping mapping);
 
     List<ScenarioResponse> toResponseList(List<Scenario> scenarios);
+
+    List<org.tss.tm.dto.tenant.response.ScenarioResponse> toTenantResponseList(List<Scenario> scenarios);
 }

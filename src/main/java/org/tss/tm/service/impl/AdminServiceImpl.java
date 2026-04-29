@@ -3,6 +3,7 @@ package org.tss.tm.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.tss.tm.common.enums.TenantStatus;
 import org.tss.tm.dto.admin.request.AssignScenarioRequest;
 import org.tss.tm.dto.admin.response.ScenarioDetailResponse;
 import org.tss.tm.dto.admin.response.ScenarioResponse;
@@ -53,6 +54,13 @@ public class AdminServiceImpl implements AdminService {
                 .build();
 
         tenantScenarioRepo.save(tenantScenarioMapping);
+
+        // If this is the first scenario, set tenant status to ACTIVE
+        if (tenantScenarioRepo.countByTenant(tenant) == 1 && tenant.getStatus() == TenantStatus.ONBOARDING) {
+            log.info("Activating tenant {} as first scenario is assigned", tenant.getTenantCode());
+            tenant.setStatus(TenantStatus.ACTIVE);
+            tenantRepo.save(tenant);
+        }
 
         // Copy parameters from master to tenant
         List<ScenarioParameterMaster> masterParams = scenarioParameterMasterRepo.findByScenario_ScenarioId(scenario.getScenarioId());

@@ -57,7 +57,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(java.util.List.of("http://localhost:4200")); // Typical Angular dev port
+        configuration.setAllowedOrigins(java.util.List.of("http://localhost:4200", "http://10.12.177.3:4200")); // Typical Angular dev port
         configuration.setAllowedMethods(java.util.List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(java.util.List.of("Authorization", "Content-Type", "X-Tenant-Id"));
         configuration.setExposedHeaders(java.util.List.of("Authorization"));

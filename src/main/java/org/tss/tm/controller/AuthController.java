@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,6 +19,7 @@ import org.tss.tm.dto.user.request.ChangePasswordRequest;
 import org.tss.tm.dto.user.request.LoginRequest;
 import org.tss.tm.dto.user.response.AuthResponse;
 import org.tss.tm.dto.user.response.ChangePasswordResponse;
+import org.tss.tm.dto.user.response.UserResponse;
 import org.tss.tm.service.interfaces.AuthService;
 import org.tss.tm.tenant.TenantContext;
 
@@ -56,6 +58,20 @@ public class AuthController {
                         response.getMessage(),
                         httpServletRequest.getRequestURI(),
                         response
+                ));
+        }
+
+        @GetMapping("/me")
+        public ResponseEntity<ApiResponse<UserResponse>> getCurrentUser(
+                @AuthenticationPrincipal UserDetails userDetails,
+                HttpServletRequest httpServletRequest
+        ) {
+                UserResponse userResponse = authService.getCurrentUser(userDetails.getUsername());
+                return ResponseEntity.ok(ApiResponse.of(
+                        HttpStatus.OK,
+                        "User profile retrieved successfully",
+                        httpServletRequest.getRequestURI(),
+                        userResponse
                 ));
         }
 
