@@ -5,11 +5,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.tss.tm.dto.tenant.request.ScenarioParamUploadRequest;
+import org.tss.tm.entity.system.Rule;
 import org.tss.tm.entity.system.Scenario;
 import org.tss.tm.entity.system.ScenarioParameterMaster;
 import org.tss.tm.entity.system.Tenant;
 import org.tss.tm.entity.tenant.ScenarioParam;
 import org.tss.tm.exception.ResourceNotFoundException;
+import org.tss.tm.repository.RuleRepo;
 import org.tss.tm.repository.ScenarioParamRepo;
 import org.tss.tm.repository.ScenarioRepo;
 import org.tss.tm.repository.TenantRepo;
@@ -30,6 +33,7 @@ public class ScenarioParamServiceImpl implements ScenarioParamService {
 
     private final ScenarioParamRepo scenarioParamRepo;
     private final ScenarioRepo scenarioRepo;
+    private final RuleRepo ruleRepo;
     private final TenantRepo tenantRepo;
 
     @Override
@@ -105,4 +109,57 @@ public class ScenarioParamServiceImpl implements ScenarioParamService {
             scenarioParamRepo.save(tenantParam);
         }
     }
+
+    @Override
+    public ScenarioParam convertToEntity(ScenarioParamUploadRequest request) {
+        if(request.getParamKey()==null || request.getParamKey().isEmpty()){
+            throw new IllegalArgumentException("Parameter Key Not Found");
+        }
+
+        if(request.getValue() ==null || request.getValue().isEmpty()){
+            throw new IllegalArgumentException("Missing Value");
+        }
+
+        if(request.getScenarioCode()==null || request.getScenarioCode().isEmpty()){
+            throw new IllegalArgumentException("Missing Scenario Code");
+        }
+        if(request.getDataType() ==null){
+            throw new IllegalArgumentException("Missing Data Type");
+        }
+
+        Scenario scenario= scenarioRepo.findScenarioByScenarioCode(request.getRuleCode()).orElseThrow(()-> new ResourceNotFoundException("Scenario Not Found",new Scenario()));
+
+        ScenarioParam param=ScenarioParam.builder()
+                .scenario(scenario)
+                .paramKey(request.getParamKey())
+                .dataType(request.getDataType())
+                .build();
+
+        Rule rule;
+
+        if(request.getRuleCode()!=null){
+            rule=ruleRepo.findByRuleCode(request.getRuleCode()).orElseThrow(()-> new ResourceNotFoundException("Rule Not Found",new Rule()));
+            param.setRule(rule);
+        }
+        param.setValidFrom(LocalDateTime.now());
+
+        try{
+            switch (request.getDataType()){
+                case INT -> {
+                    param.setIntValue(Long.parseLong(request.getValue()));
+                }
+                case DECIMAL -> {
+                    param.setDecimalValue(new BigDecimal(request.getValue()));
+                }
+                default -> {
+                    param.setStringValue(request.getValue());
+                }
+            }
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid value");
+        }
+
+        return param;
+    }
+
 }
