@@ -16,8 +16,6 @@ public interface ScenarioMapper {
     @Named("adminResponse")
     ScenarioResponse toResponse(Scenario scenario);
 
-    ScenarioResponse toTenantResponse(Scenario scenario);
-
     @Named("tenantResponse")
     org.tss.tm.dto.tenant.response.ScenarioResponse toTenantResponse(Scenario scenario);
 
@@ -34,5 +32,6 @@ public interface ScenarioMapper {
     @org.mapstruct.IterableMapping(qualifiedByName = "adminResponse")
     List<ScenarioResponse> toResponseList(List<Scenario> scenarios);
 
+    @org.mapstruct.IterableMapping(qualifiedByName = "tenantResponse")
     List<org.tss.tm.dto.tenant.response.ScenarioResponse> toTenantResponseList(List<Scenario> scenarios);
 }
