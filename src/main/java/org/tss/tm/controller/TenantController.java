@@ -21,6 +21,7 @@ import org.tss.tm.dto.tenant.response.TenantDetailResponse;
 import org.tss.tm.dto.tenant.response.TenantResponse;
 import org.tss.tm.dto.tenant.response.TenantUserResponse;
 import org.tss.tm.service.interfaces.TenantService;
+import org.tss.tm.dto.tenant.response.CustomerDashboardResponse;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -64,6 +65,68 @@ public class TenantController {
                                 "Transaction jobs fetched successfully",
                                 httpServletRequest.getRequestURI(),
                                 response
+                ));
+        }
+
+        @GetMapping("/customer-stats")
+        @PreAuthorize("hasRole('BANK_ADMIN')")
+        public ResponseEntity<ApiResponse<CustomerDashboardResponse>> getCustomerStats(
+                        HttpServletRequest httpServletRequest
+        ) {
+                log.info("Received request to fetch customer dashboard stats");
+                CustomerDashboardResponse response = tenantService.getCustomerDashboardStats();
+                return ResponseEntity.ok(ApiResponse.of(
+                                HttpStatus.OK,
+                                "Customer stats fetched successfully",
+                                httpServletRequest.getRequestURI(),
+                                response
+                ));
+        }
+
+        @GetMapping("/customer-jobs")
+        @PreAuthorize("hasRole('BANK_ADMIN')")
+        public ResponseEntity<ApiResponse<List<CustomerDashboardResponse.RecentJobResponse>>> getCustomerJobs(
+                        HttpServletRequest httpServletRequest
+        ) {
+                log.info("Received request to fetch recent customer jobs");
+                List<CustomerDashboardResponse.RecentJobResponse> response = tenantService.getCustomerJobs();
+                return ResponseEntity.ok(ApiResponse.of(
+                                HttpStatus.OK,
+                                "Customer jobs fetched successfully",
+                                httpServletRequest.getRequestURI(),
+                                response
+                ));
+        }
+
+        @GetMapping("/customer-errors")
+        @PreAuthorize("hasRole('BANK_ADMIN')")
+        public ResponseEntity<ApiResponse<Page<FileErrorResponse>>> getCustomerErrors(
+                        @RequestParam(required = false) String jobId,
+                        @PageableDefault(size = 10) Pageable pageable,
+                        HttpServletRequest httpServletRequest
+        ) {
+                log.info("Received request to fetch customer errors");
+                Page<FileErrorResponse> errorResponse = tenantService.getCustomerErrors(jobId, pageable);
+                return ResponseEntity.ok(ApiResponse.of(
+                                HttpStatus.OK,
+                                "Customer errors fetched successfully",
+                                httpServletRequest.getRequestURI(),
+                                errorResponse
+                ));
+        }
+
+        @GetMapping("/rule-engine-stats")
+        @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
+        public ResponseEntity<ApiResponse<java.util.Map<String, Long>>> getRuleEngineStats(
+                        HttpServletRequest httpServletRequest
+        ) {
+                log.info("Received request to fetch rule engine stats");
+                java.util.Map<String, Long> stats = tenantService.getRuleEngineStats();
+                return ResponseEntity.ok(ApiResponse.of(
+                                HttpStatus.OK,
+                                "Rule engine stats fetched successfully",
+                                httpServletRequest.getRequestURI(),
+                                stats
                 ));
         }
 
@@ -156,6 +219,24 @@ public class TenantController {
                         errorResponse
                 ));
         }
+
+    @GetMapping("/transaction-errors")
+    @PreAuthorize("hasRole('BANK_ADMIN')")
+    public ResponseEntity<ApiResponse<Page<FileErrorResponse>>> getTransactionErrors(
+            @RequestParam(required = false) String jobId,
+            @PageableDefault(size = 10) Pageable pageable,
+            HttpServletRequest httpServletRequest
+    ) {
+        log.info("Received request to fetch transaction errors");
+        Page<FileErrorResponse> errorResponse = tenantService.getTransactionErrors(jobId, pageable);
+        return ResponseEntity.ok(ApiResponse.of(
+                HttpStatus.OK,
+                "Transaction errors fetched successfully",
+                httpServletRequest.getRequestURI(),
+                errorResponse
+        ));
+    }
+
 
         @GetMapping("/{tenantCode}")
         @PreAuthorize("hasAnyRole('BANK_ADMIN', 'SYSTEM_ADMIN', 'COMPLIANCE_OFFICER')")
