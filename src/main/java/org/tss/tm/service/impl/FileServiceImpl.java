@@ -81,6 +81,7 @@ public class FileServiceImpl implements FileService {
             if (file.exists()) {
                 file.delete();
             }
+            jobService.setCompletionTime(jobId);
             jobService.updateJobStatus(jobId, JobStatus.FAILED);
             log.error("File pre-processing failed for job {}", jobId);
             throw new RuntimeException("File Upload Failed", e);

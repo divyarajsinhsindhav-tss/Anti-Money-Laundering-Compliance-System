@@ -12,6 +12,7 @@ import org.tss.tm.repository.TenantRepo;
 import org.tss.tm.service.interfaces.JobService;
 import org.tss.tm.service.interfaces.TenantService;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -38,5 +39,13 @@ public class JobServiceImpl implements JobService {
         JobRecord job = jobRepo.findById(jobId)
                 .orElseThrow(() -> new RuntimeException("Job not found"));
         job.setStatus(status);
+    }
+
+    @Override
+    @Transactional
+    public void setCompletionTime(UUID jobId) {
+        JobRecord job = jobRepo.findById(jobId)
+                .orElseThrow(() -> new RuntimeException("Job not found"));
+        job.setCompletedAt(LocalDateTime.now());
     }
 }

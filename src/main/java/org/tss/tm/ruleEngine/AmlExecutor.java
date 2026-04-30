@@ -63,7 +63,7 @@ public class AmlExecutor {
                     log.error("Critical Failure executing Scenario {}. Skipping to next.", scenarioCode, e);
                 }
             }
-
+            jobService.setCompletionTime(currentJobId);
             if (successCount == 0) {
                 jobService.updateJobStatus(currentJobId, JobStatus.FAILED);
                 RuleEngineError ruleEngineError=RuleEngineError.builder().info("Job Failure: All scenarios execution failed").jobId(String.valueOf(currentJobId)).severity(ErrorSeverity.HIGH).build();
@@ -71,7 +71,9 @@ public class AmlExecutor {
                 log.warn("Job Execution Failed for Tenant: {}", tenantCode);
                 return;
             }
+
             jobService.updateJobStatus(currentJobId, JobStatus.COMPLETED);
+
             log.info("AML Job Completed for Tenant {}. Success: {}, Failed: {}",
                     tenantCode, successCount, failureCount);
         } finally {

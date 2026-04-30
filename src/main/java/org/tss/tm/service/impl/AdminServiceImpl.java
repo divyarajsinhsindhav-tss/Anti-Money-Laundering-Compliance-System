@@ -65,14 +65,12 @@ public class AdminServiceImpl implements AdminService {
 
         tenantScenarioRepo.save(tenantScenarioMapping);
 
-        // If this is the first scenario, set tenant status to ACTIVE
         if (tenantScenarioRepo.countByTenant(tenant) == 1 && tenant.getStatus() == TenantStatus.ONBOARDING) {
             log.info("Activating tenant {} as first scenario is assigned", tenant.getTenantCode());
             tenant.setStatus(TenantStatus.ACTIVE);
             tenantRepo.save(tenant);
         }
 
-        // Copy parameters from master to tenant
         List<ScenarioParameterMaster> masterParams = scenarioParameterMasterRepo
                 .findByScenario_ScenarioId(scenario.getScenarioId());
 

@@ -94,6 +94,7 @@ public class FileProcessor {
             }
 
             conn.commit();
+            jobService.setCompletionTime(jobId);
             jobService.updateJobStatus(jobId, JobStatus.COMPLETED);
 
             log.info("File ingestion completed for jobId={}", jobId);
@@ -108,6 +109,7 @@ public class FileProcessor {
                 }
             }
 
+            jobService.setCompletionTime(jobId);
             jobService.updateJobStatus(jobId, JobStatus.FAILED);
             throw new RuntimeException("COPY ingestion failed", e);
 
@@ -189,6 +191,7 @@ public class FileProcessor {
             }
 
             conn.commit();
+            jobService.setCompletionTime(jobId);
             jobService.updateJobStatus(jobId, JobStatus.COMPLETED);
 
             log.info("File ingestion completed for jobId={}", jobId);
@@ -201,7 +204,7 @@ public class FileProcessor {
                 } catch (SQLException ignored) {
                 }
             }
-
+            jobService.setCompletionTime(jobId);
             jobService.updateJobStatus(jobId, JobStatus.FAILED);
             throw new RuntimeException("COPY ingestion failed", e);
 

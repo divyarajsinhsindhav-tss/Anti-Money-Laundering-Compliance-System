@@ -9,4 +9,5 @@ import java.util.UUID;
 public interface JobService {
     JobRecord createNewJob(JobType type);
     void updateJobStatus(UUID jobId, JobStatus status);
+    void setCompletionTime(UUID jobId);
 }
