@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.tss.tm.common.enums.JobStatus;
 import org.tss.tm.common.enums.JobType;
 import org.tss.tm.entity.system.JobRecord;
+import org.tss.tm.entity.system.Tenant;
 import org.tss.tm.repository.JobRepo;
 import org.tss.tm.repository.TenantRepo;
 import org.tss.tm.service.interfaces.JobService;
@@ -19,23 +20,15 @@ import java.util.UUID;
 public class JobServiceImpl implements JobService {
     private JobRepo jobRepo;
     private TenantService tenantService;
-    private TenantRepo tenantRepo;
 
     @Override
     public JobRecord createNewJob(JobType type) {
-        JobRecord newJob = new JobRecord();
-        newJob.setJobType(type);
-        newJob.setStatus(JobStatus.PENDING);
-        newJob.setTenant(tenantService.getCurrentTenant());
-//        CHANGE THIS AT PRODUCTION-----------
-//        TESTING ONLY:
-//        Tenant tempTenant=tenantRepo.getReferenceById(UUID.fromString("c77290af-8631-422b-a9a6-0d4ebac6ced9"));
-//        newJob.setTenant(tempTenant);
-
-//        ------------------
-
-        newJob.setStartedAt(LocalDateTime.now());
-
+        JobRecord newJob = JobRecord.builder()
+                .jobType(type)
+                .status(JobStatus.PENDING)
+                .tenant(tenantService.getCurrentTenant())
+                .startedAt(LocalDateTime.now())
+                .build();
         return jobRepo.save(newJob);
     }
 

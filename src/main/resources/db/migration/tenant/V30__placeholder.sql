@@ -1,0 +1,1 @@
+-- Placeholder to avoid gaps in Flyway history

@@ -33,12 +33,13 @@ public class AlertController {
     @GetMapping
     @PreAuthorize("hasRole('BANK_ADMIN')")
     public ResponseEntity<ApiResponse<PagedResponse<AlertResponse>>> getAllAlerts(
+            @RequestParam(required = false) String alertCode,
             @RequestParam(required = false) AlertStatus status,
             @PageableDefault(size = 10) Pageable pageable,
             HttpServletRequest httpServletRequest
     ) {
-        log.info("Received request to fetch all alerts with status: {}", status);
-        Page<AlertResponse> alerts = alertService.getAllAlerts(status, pageable);
+        log.info("Received request to fetch all alerts with alertCode: {} and status: {}", alertCode, status);
+        Page<AlertResponse> alerts = alertService.getAllAlerts(alertCode, status, pageable);
 
         PagedResponse<AlertResponse> pagedResponse = PagedResponse.of(
                 alerts.getContent(),

@@ -1,6 +1,5 @@
 package org.tss.tm.service.impl;
 
-import jakarta.persistence.criteria.CriteriaBuilder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -24,6 +23,7 @@ import org.tss.tm.repository.TenantUserRepo;
 import org.tss.tm.service.interfaces.AlertService;
 
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +43,10 @@ public class AlertServiceImpl implements AlertService {
 
         Alert alert = alertRepo.findByAlertCode(alertCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Alert", alertCode));
+
+        if (status == AlertStatus.IN_CASE) {
+            throw new BusinessRuleException("Status cannot be updated to IN_CASE directly. It is only set when a case is created.");
+        }
 
         if (alert.getAlertStatus() == status) {
             return alertMapper.toResponse(alert);
@@ -70,14 +74,24 @@ public class AlertServiceImpl implements AlertService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<AlertResponse> getAllAlerts(AlertStatus status, Pageable pageable) {
-        Page<Alert> alerts;
-        if (status != null) {
-            alerts = alertRepo.findAllByAlertStatus(status, pageable);
+    public Page<AlertResponse> getAllAlerts(String alertCode, AlertStatus status, Pageable pageable) {
+        log.info("Fetching all alerts with filter alertCode: {}, status: {}", alertCode, status);
+        
+        Page<Alert> alertPage;
+        boolean hasCode = alertCode != null && !alertCode.trim().isEmpty();
+        boolean hasStatus = status != null;
+
+        if (hasCode && hasStatus) {
+            alertPage = alertRepo.findAllByAlertCodeContainingIgnoreCaseAndAlertStatus(alertCode, status, pageable);
+        } else if (hasCode) {
+            alertPage = alertRepo.findAllByAlertCodeContainingIgnoreCase(alertCode, pageable);
+        } else if (hasStatus) {
+            alertPage = alertRepo.findAllByAlertStatus(status, pageable);
         } else {
-            alerts = alertRepo.findAll(pageable);
+            alertPage = alertRepo.findAll(pageable);
         }
-        return alerts.map(alertMapper::toResponse);
+
+        return alertPage.map(alertMapper::toResponse);
     }
 
     @Transactional(readOnly = true)

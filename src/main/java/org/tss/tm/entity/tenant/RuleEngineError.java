@@ -27,13 +27,14 @@ public class RuleEngineError {
     @Column(name = "info", columnDefinition = "TEXT")
     private String info;
 
-    @Column(name="severity")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "severity")
     private ErrorSeverity severity;
 
-    @Column(name="rule_code")
+    @Column(name = "rule_code")
     private String ruleCode;
 
-    @Column(name="scenarioCode")
+    @Column(name = "scenario_code")
     private String scenarioCode;
 
     @Builder.Default

@@ -18,6 +18,7 @@ public class ScenarioDetailResponse {
     private String description;
     private StatusBasic status;
     private List<TenantInfo> tenants;
+    private List<RuleInfo> rules;
 
     @Data
     @Builder
@@ -26,5 +27,15 @@ public class ScenarioDetailResponse {
     public static class TenantInfo {
         private String tenantCode;
         private String name;
+    }
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class RuleInfo {
+        private String ruleCode;
+        private String ruleName;
+        private String description;
     }
 }
