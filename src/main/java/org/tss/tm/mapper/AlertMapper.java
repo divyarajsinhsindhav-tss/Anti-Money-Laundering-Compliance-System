@@ -13,6 +13,7 @@ public interface AlertMapper {
     @Mapping(target = "scenarioName", source = "scenario.scenarioName")
     @Mapping(target = "customerName", expression = "java(alert.getCustomer().getFirstName() + \" \" + alert.getCustomer().getLastName())")
     @Mapping(target = "customerCode", source = "customer.cif")
+    @Mapping(target = "customerIncome", source = "customer.income")
     AlertResponse toResponse(Alert alert);
 
     List<AlertResponse> toResponseList(List<Alert> alerts);

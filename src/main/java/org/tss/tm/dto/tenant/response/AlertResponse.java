@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.tss.tm.common.enums.AlertStatus;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -18,6 +19,7 @@ public class AlertResponse {
     private String scenarioName;
     private String customerName;
     private String customerCode;
+    private BigDecimal customerIncome;
     private AlertStatus alertStatus;
     private LocalDateTime createdAt;
 }

@@ -27,6 +27,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.List;
 import java.sql.SQLException;
 
+import org.tss.tm.dto.tenant.response.TransactionDashboardResponse;
+
 @Slf4j
 @RequiredArgsConstructor
 @RestController
@@ -34,6 +36,36 @@ import java.sql.SQLException;
 public class TenantController {
 
         private final TenantService tenantService;
+
+        @GetMapping("/transaction-stats")
+        @PreAuthorize("hasRole('BANK_ADMIN')")
+        public ResponseEntity<ApiResponse<TransactionDashboardResponse>> getTransactionStats(
+                        HttpServletRequest httpServletRequest
+        ) {
+                log.info("Received request to fetch transaction dashboard stats");
+                TransactionDashboardResponse response = tenantService.getTransactionDashboardStats();
+                return ResponseEntity.ok(ApiResponse.of(
+                                HttpStatus.OK,
+                                "Transaction stats fetched successfully",
+                                httpServletRequest.getRequestURI(),
+                                response
+                ));
+        }
+
+        @GetMapping("/transaction-jobs")
+        @PreAuthorize("hasRole('BANK_ADMIN')")
+        public ResponseEntity<ApiResponse<List<TransactionDashboardResponse.RecentJobResponse>>> getTransactionJobs(
+                        HttpServletRequest httpServletRequest
+        ) {
+                log.info("Received request to fetch recent transaction jobs");
+                List<TransactionDashboardResponse.RecentJobResponse> response = tenantService.getTransactionJobs();
+                return ResponseEntity.ok(ApiResponse.of(
+                                HttpStatus.OK,
+                                "Transaction jobs fetched successfully",
+                                httpServletRequest.getRequestURI(),
+                                response
+                ));
+        }
 
         @PostMapping("/register")
         @PreAuthorize("hasRole('SYSTEM_ADMIN')")

@@ -12,10 +12,16 @@ import org.tss.tm.entity.system.Tenant;
 import java.util.List;
 import java.util.UUID;
 
+import org.tss.tm.common.enums.JobType;
+
 public interface JobRepo extends JpaRepository<JobRecord, UUID> {
     List<JobRecord> findByTenantOrderByCreatedAtDesc(Tenant tenant);
     long countByTenant(Tenant tenant);
     long countByStatus(JobStatus status);
+    
+    Page<JobRecord> findByTenantAndJobType(Tenant tenant, JobType jobType, Pageable pageable);
+    long countByTenantAndJobType(Tenant tenant, JobType jobType);
+
     @Query("SELECT j FROM JobRecord j JOIN FETCH j.tenant ORDER BY j.createdAt DESC")
     List<JobRecord> findRecentJobs(Pageable pageable);
 

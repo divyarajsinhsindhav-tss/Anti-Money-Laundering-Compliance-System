@@ -3,11 +3,14 @@ package org.tss.tm.service.impl;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.tss.tm.common.constant.TenantConstants;
+import org.tss.tm.common.enums.JobType;
 import org.tss.tm.common.enums.UserRole;
 import org.tss.tm.dto.tenant.response.ScenarioResponse;
 import org.tss.tm.dto.tenant.request.TenantAdminRegistrationRequest;
@@ -16,6 +19,7 @@ import org.tss.tm.dto.tenant.response.FileErrorResponse;
 import org.tss.tm.dto.tenant.response.TenantAvailableResponse;
 import org.tss.tm.dto.tenant.response.TenantDetailResponse;
 import org.tss.tm.dto.tenant.response.TenantResponse;
+import org.tss.tm.dto.tenant.response.TransactionDashboardResponse;
 import org.tss.tm.entity.system.JobRecord;
 import org.tss.tm.entity.system.SystemAdmin;
 import org.tss.tm.entity.system.Tenant;
@@ -40,6 +44,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
+
+import static org.springframework.data.domain.Sort.Direction.DESC;
 
 @Service
 @RequiredArgsConstructor
@@ -61,6 +68,7 @@ public class TenantServiceImpl implements TenantService {
     private final ScenarioMapper scenarioMapper;
     private final CustomerErrorRepo customerErrorRepo;
     private final TransactionErrorRepo transactionErrorRepo;
+    private final FinancialTransactionRepo financialTransactionRepo;
     private final JobRepo jobRepo;
 
     @Override
@@ -118,8 +126,7 @@ public class TenantServiceImpl implements TenantService {
     }
 
     private void sendWelcomeEmail(Tenant tenant,
-                                  TenantAdminRegistrationRequest adminRequest
-    ) {
+            TenantAdminRegistrationRequest adminRequest) {
         java.util.Map<String, Object> variables = new java.util.HashMap<>();
         variables.put("tenantName", tenant.getName());
         variables.put("adminEmail", adminRequest.getEmail());
@@ -140,8 +147,7 @@ public class TenantServiceImpl implements TenantService {
     }
 
     public TenantUser registerTenantAdmin(TenantAdminRegistrationRequest adminRequest,
-                                          Tenant tenant
-    ) {
+            Tenant tenant) {
         TenantUser user = userMapper.toEntity(adminRequest);
         user.setPasswordHash(passwordEncoder.encode(adminRequest.getPassword()));
         user.setRole(UserRole.BANK_ADMIN);
@@ -212,7 +218,7 @@ public class TenantServiceImpl implements TenantService {
     public Page<FileErrorResponse> getFileError(Pageable pageable) {
         // Ensure tenant context is valid
         getCurrentTenant();
-        
+
         return customerErrorRepo.findAll(pageable).map(error -> FileErrorResponse.builder()
                 .identifier(error.getCif())
                 .rawRow(error.getRawRow())
@@ -244,5 +250,66 @@ public class TenantServiceImpl implements TenantService {
                 .jobRunCount(jobRunCount)
                 .jobHistory(tenantMapper.toJobResponseList(jobHistory))
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TransactionDashboardResponse getTransactionDashboardStats() {
+        log.info("Fetching transaction dashboard stats for current tenant");
+
+        Tenant tenant = getCurrentTenant();
+
+        long totalTransactions = financialTransactionRepo.count();
+        long totalErrors = transactionErrorRepo.count();
+        long totalBatches = jobRepo.countByTenantAndJobType(tenant, JobType.FILE_UPLOAD_TRANSACTION);
+
+        List<TransactionDashboardResponse.RecentErrorResponse> recentErrors = transactionErrorRepo.findAll(
+                PageRequest.of(0, 5, Sort.by(DESC, "createdAt")))
+                .getContent().stream().map(error -> TransactionDashboardResponse.RecentErrorResponse.builder()
+                        .id(error.getErrorId())
+                        .transactionId(error.getTxnNo())
+                        .errorMessage(error.getCriticalErrors() != null && !error.getCriticalErrors().isEmpty()
+                                ? error.getCriticalErrors().get(0)
+                                : "Data Validation Failure")
+                        .errorCode("ERR_" + error.getErrorId())
+                        .timestamp(error.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        List<TransactionDashboardResponse.RecentJobResponse> recentJobs = jobRepo.findByTenantAndJobType(
+                tenant, JobType.FILE_UPLOAD_TRANSACTION, PageRequest.of(0, 5, Sort.by(DESC, "createdAt"))
+        ).getContent().stream()
+                .map(job -> TransactionDashboardResponse.RecentJobResponse.builder()
+                        .id(job.getJobId().toString())
+                        .status(job.getStatus().name())
+                        .errorCount(0)
+                        .startTime(job.getStartedAt() != null ? job.getStartedAt() : job.getCreatedAt())
+                        .endTime(job.getCompletedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        return TransactionDashboardResponse.builder()
+                .totalTransactions(totalTransactions)
+                .totalErrors(totalErrors)
+                .totalBatches(totalBatches)
+                .recentErrors(recentErrors)
+                .recentJobs(recentJobs)
+                .build();
+    }
+
+    @Override
+    public List<TransactionDashboardResponse.RecentJobResponse> getTransactionJobs() {
+        Tenant tenant = getCurrentTenant();
+        return jobRepo.findByTenantAndJobType(
+                tenant, JobType.FILE_UPLOAD_TRANSACTION, PageRequest.of(0, 10, Sort.by(DESC, "createdAt"))
+        ).getContent().stream()
+                .map(job -> TransactionDashboardResponse.RecentJobResponse.builder()
+                        .id(job.getJobId().toString())
+                        .status(job.getStatus().name())
+                        .errorCount(0) // Default for now
+                        .startTime(job.getStartedAt() != null ? job.getStartedAt() : job.getCreatedAt())
+                        .endTime(job.getCompletedAt())
+                        .build())
+                .collect(Collectors.toList());
     }
 }

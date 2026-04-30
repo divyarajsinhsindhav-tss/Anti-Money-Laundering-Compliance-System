@@ -18,5 +18,5 @@ public class CustomerResponse {
     private String middleName;
     private String lastName;
     private LocalDate dob;
-    private BigDecimal income;
+    private BigDecimal customerIncome;
 }

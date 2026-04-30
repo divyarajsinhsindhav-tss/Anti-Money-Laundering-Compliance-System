@@ -13,6 +13,8 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 
+import org.tss.tm.dto.tenant.response.TransactionDashboardResponse;
+
 public interface TenantService {
     TenantResponse createTenant(TenantRegistrationRequest request, String email);
 
@@ -33,4 +35,7 @@ public interface TenantService {
     Page<FileErrorResponse> getFileError(Pageable pageable);
 
     TenantDetailResponse getTenantDetail(String tenantCode);
+
+    TransactionDashboardResponse getTransactionDashboardStats();
+    List<TransactionDashboardResponse.RecentJobResponse> getTransactionJobs();
 }

@@ -140,7 +140,7 @@ public class AlertServiceImpl implements AlertService {
                 .middleName(alert.getCustomer().getMiddleName())
                 .lastName(alert.getCustomer().getLastName())
                 .dob(alert.getCustomer().getDob())
-                .income(alert.getCustomer().getIncome())
+                .customerIncome(alert.getCustomer().getIncome())
                 .build());
 
         return AlertDetailResponse.builder()

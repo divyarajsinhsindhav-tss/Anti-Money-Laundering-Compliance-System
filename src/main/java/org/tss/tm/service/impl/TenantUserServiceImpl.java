@@ -14,6 +14,7 @@ import org.tss.tm.dto.user.response.UserResponse;
 import org.tss.tm.entity.system.Tenant;
 import org.tss.tm.entity.tenant.TenantUser;
 import org.tss.tm.mapper.UserMapper;
+import org.tss.tm.repository.CaseRepo;
 import org.tss.tm.repository.TenantRepo;
 import org.tss.tm.repository.TenantUserRepo;
 import org.tss.tm.service.interfaces.TenantUserService;
@@ -32,6 +33,7 @@ public class TenantUserServiceImpl implements TenantUserService {
     private final PasswordEncoder passwordEncoder;
     private final EntityManager entityManager;
     private final UserMapper userMapper;
+    private final CaseRepo caseRepo;
 
     @Override
     @Transactional
@@ -72,6 +74,14 @@ public class TenantUserServiceImpl implements TenantUserService {
     public List<UserResponse> getAllComplienceOfficer(String userEmail) {
         log.info("Fetching all compliance officers requested by: {}", userEmail);
         List<TenantUser> complianceOfficers = tenantUserRepo.findAllByRole(UserRole.COMPLIANCE_OFFICER);
-        return userMapper.toResponseList(complianceOfficers);
+        List<UserResponse> responses = userMapper.toResponseList(complianceOfficers);
+
+        // Populate case counts
+        responses.forEach(response -> {
+            long count = caseRepo.countByAssignedTo_UserCode(response.getUserCode());
+            response.setAssignedCasesCount(count);
+        });
+
+        return responses;
     }
 }
