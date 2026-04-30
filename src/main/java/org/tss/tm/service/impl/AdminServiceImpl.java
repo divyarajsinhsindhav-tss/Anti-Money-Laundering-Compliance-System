@@ -22,7 +22,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 import org.tss.tm.entity.system.ScenarioParameterMaster;
 import org.tss.tm.repository.ScenarioParameterMasterRepo;
-import org.tss.tm.service.interfaces.ScenarioParamService;
+import org.tss.tm.service.interfaces.ParamService;
 import org.tss.tm.tenant.TenantContext;
 
 import java.util.List;
@@ -43,9 +43,10 @@ public class AdminServiceImpl implements AdminService {
     private final ScenarioRepo scenarioRepo;
     private final ScenarioMapper scenarioMapper;
     private final ScenarioParameterMasterRepo scenarioParameterMasterRepo;
-    private final ScenarioParamService scenarioParamService;
+    private final ParamService scenarioParamService;
     private final JobRepo jobRepo;
     private final EntityManager entityManager;
+    private final ParamService paramService;
 
     @Override
     @Transactional
@@ -81,7 +82,7 @@ public class AdminServiceImpl implements AdminService {
             String previousTenant = TenantContext.getCurrentTenant();
             try {
                 TenantContext.setCurrentTenant(tenant.getSchemaName());
-                scenarioParamService.createParametersFromMaster(scenario, masterParams);
+                paramService.createParametersFromMaster(scenario, masterParams);
             } finally {
                 TenantContext.setCurrentTenant(previousTenant);
             }

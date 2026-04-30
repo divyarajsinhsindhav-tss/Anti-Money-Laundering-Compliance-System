@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ScenarioParamUpload {
+public class ScenarioParamUploadRequest {
     private String ruleCode;
 
     @NotEmpty(message = "Scenario Code can not be empty")
@@ -25,7 +25,5 @@ public class ScenarioParamUpload {
     @NotEmpty(message = "Data Type can not be empty")
     private DataType dataType;
 
-    private BigDecimal decimalValue;
-    private Long intValue;
-    private String stringValue;
+    private String value;
 }

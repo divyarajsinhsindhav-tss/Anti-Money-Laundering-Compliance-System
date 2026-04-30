@@ -29,10 +29,6 @@ public class ScenarioParam {
     private UUID scenarioParamId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "tenant_id", nullable = false)
-    private Tenant tenant;
-
-    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "scenario_id", nullable = false)
     private Scenario scenario;
 

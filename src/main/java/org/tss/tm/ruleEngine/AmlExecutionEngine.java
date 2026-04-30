@@ -4,7 +4,6 @@ import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.tss.tm.common.enums.AlertStatus;
@@ -15,12 +14,11 @@ import org.tss.tm.entity.system.Scenario;
 import org.tss.tm.entity.tenant.Alert;
 import org.tss.tm.entity.tenant.RuleEngineError;
 import org.tss.tm.repository.*;
-import org.tss.tm.service.interfaces.ScenarioParamService;
+import org.tss.tm.service.interfaces.ParamService;
 
 import java.util.*;
 import java.time.LocalDate;
 
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.stream.Collectors;
@@ -31,7 +29,7 @@ import java.util.stream.Collectors;
 public class AmlExecutionEngine {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
-    private final ScenarioParamService paramService;
+    private final ParamService paramService;
     private final AlertRepo alertRepo;
     private final AlertInfoRepo alertInfoRepo;
     private final ScenarioRepo scenarioRepo;

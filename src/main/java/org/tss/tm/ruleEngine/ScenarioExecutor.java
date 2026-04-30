@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import org.tss.tm.common.enums.ErrorSeverity;
 import org.tss.tm.entity.tenant.RuleEngineError;
 import org.tss.tm.repository.RuleEngineErrorRepo;
-import org.tss.tm.service.interfaces.ScenarioParamService;
+import org.tss.tm.service.interfaces.ParamService;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -19,7 +19,7 @@ import java.util.UUID;
 public class ScenarioExecutor {
 
     private final AmlExecutionEngine engine;
-    private final ScenarioParamService paramService;
+    private final ParamService paramService;
     private final RuleEngineErrorRepo ruleEngineErrorRepo;
 
     public void runScenario(AmlScenarioBlueprint blueprint, UUID jobId, LocalDate fromDate, LocalDate toDate) {

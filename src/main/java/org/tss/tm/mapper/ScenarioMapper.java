@@ -2,6 +2,7 @@ package org.tss.tm.mapper;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.Named;
 import org.tss.tm.dto.admin.response.ScenarioDetailResponse;
 import org.tss.tm.dto.admin.response.ScenarioResponse;
 import org.tss.tm.entity.system.Scenario;
@@ -12,10 +13,12 @@ import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface ScenarioMapper {
-    @org.mapstruct.Named("adminResponse")
+    @Named("adminResponse")
     ScenarioResponse toResponse(Scenario scenario);
 
-    @org.mapstruct.Named("tenantResponse")
+    ScenarioResponse toTenantResponse(Scenario scenario);
+
+    @Named("tenantResponse")
     org.tss.tm.dto.tenant.response.ScenarioResponse toTenantResponse(Scenario scenario);
 
     @Mapping(target = "tenants", source = "tenantScenarios")
@@ -31,6 +34,5 @@ public interface ScenarioMapper {
     @org.mapstruct.IterableMapping(qualifiedByName = "adminResponse")
     List<ScenarioResponse> toResponseList(List<Scenario> scenarios);
 
-    @org.mapstruct.IterableMapping(qualifiedByName = "tenantResponse")
     List<org.tss.tm.dto.tenant.response.ScenarioResponse> toTenantResponseList(List<Scenario> scenarios);
 }
