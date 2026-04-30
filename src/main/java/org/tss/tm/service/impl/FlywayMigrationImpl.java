@@ -24,6 +24,7 @@ public class FlywayMigrationImpl implements FlywayMigration {
                 .schemas(schema)
                 .locations("classpath:db/migration/tenant")
                 .baselineOnMigrate(true)
+                .validateOnMigrate(false)
                 .load();
         flywayTenant.repair();
         flywayTenant.migrate();

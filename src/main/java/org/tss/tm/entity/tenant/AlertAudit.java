@@ -2,8 +2,9 @@ package org.tss.tm.entity.tenant;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import org.tss.tm.common.enums.AlertStatus;
-import org.tss.tm.entity.system.Tenant;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -27,11 +28,13 @@ public class AlertAudit {
     private Alert alert;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status_from", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "status_from", nullable = false, columnDefinition = "alert_status_enum")
     private AlertStatus statusFrom;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status_to", nullable = false)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "status_to", nullable = false, columnDefinition = "alert_status_enum")
     private AlertStatus statusTo;
 
     @ManyToOne(fetch = FetchType.LAZY)

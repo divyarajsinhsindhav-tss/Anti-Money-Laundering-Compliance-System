@@ -1,6 +1,5 @@
 package org.tss.tm.service.impl;
 
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -48,8 +47,8 @@ public class AmlJobServiceImpl implements AmlJobService {
             throw new IllegalArgumentException("Enter Valid From To Dates.");
         }
 
-        UUID tenantId= tenantService.getCurrentTenant().getTenantId();
-        UUID currentJobId =jobService.createNewJob(JobType.RULE_ENGINE).getJobId();
+        UUID tenantId = tenantService.getCurrentTenant().getTenantId();
+        UUID currentJobId = jobService.createNewJob(JobType.RULE_ENGINE).getJobId();
 
         List<Scenario> activeScenarios = scenarioRepo.findActiveScenariosByTenantId(tenantId);
 

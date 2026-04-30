@@ -7,10 +7,8 @@ import org.tss.tm.common.enums.AlertStatus;
 import org.tss.tm.dto.tenant.response.AlertDetailResponse;
 import org.tss.tm.dto.tenant.response.AlertResponse;
 
-import java.util.UUID;
-
 public interface AlertService {
-    Page<AlertResponse> getAllAlerts(AlertStatus status, Pageable pageable);
+    Page<AlertResponse> getAllAlerts(String alertCode, AlertStatus status, Pageable pageable);
 
     AlertResponse updateAlertStatus(String alertCode, AlertStatus status, String reason, String changedByEmail);
 

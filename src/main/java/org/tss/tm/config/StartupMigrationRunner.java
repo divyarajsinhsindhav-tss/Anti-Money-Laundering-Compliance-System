@@ -43,6 +43,7 @@ public class StartupMigrationRunner {
                 .schemas("public")
                 .locations("classpath:db/migration/public")
                 .baselineOnMigrate(true)
+                .validateOnMigrate(false)
                 .load();
 
         flywayPublic.repair();

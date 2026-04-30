@@ -10,7 +10,8 @@ import java.util.List;
 import java.util.UUID;
 
 public interface ScenarioRepo extends JpaRepository<Scenario, UUID> {
-    Optional<Scenario> findScenarioByScenarioCode(String tenantCode);
+    @Query("SELECT s FROM Scenario s LEFT JOIN FETCH s.rules WHERE s.scenarioCode = :scenarioCode")
+    Optional<Scenario> findScenarioByScenarioCode(@Param("scenarioCode") String scenarioCode);
     @Query("""
         SELECT s FROM Scenario s 
         JOIN s.tenantScenarios ts 
@@ -19,4 +20,6 @@ public interface ScenarioRepo extends JpaRepository<Scenario, UUID> {
           AND ts.tenant.tenantId = :tenantId
     """)
     List<Scenario> findActiveScenariosByTenantId(@Param("tenantId") UUID tenantId);
+
+    long countByStatus(org.tss.tm.common.enums.StatusBasic status);
 }
