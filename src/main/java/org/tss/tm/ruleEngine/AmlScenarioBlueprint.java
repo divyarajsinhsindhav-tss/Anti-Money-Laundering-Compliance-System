@@ -4,8 +4,10 @@ import java.util.UUID;
 
 public interface AmlScenarioBlueprint {
     UUID getScenarioId();
+    String getScenarioCode();
     String getBaseSqlTemplate();
     String getLogicalOperator();
     List<AmlRule> getRules();
     boolean isAggregateScenario();
+    void setScenarioId(UUID scenarioId);
 }

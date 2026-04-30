@@ -4,17 +4,31 @@ package org.tss.tm.ruleEngine;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Component
 public class ScenarioFactory {
 
-    public AmlScenarioBlueprint getBlueprint(String scenarioCode, UUID scenarioId) {
+    private final Map<String, AmlScenarioBlueprint> blueprintMap;
 
-        return switch (scenarioCode.toUpperCase()) {
-            case "S1_PASS_THROUGH" -> new PassThroughScenarioBlueprint(scenarioId);
+    public ScenarioFactory(List<AmlScenarioBlueprint> blueprints) {
+        this.blueprintMap = blueprints.stream().collect(Collectors.toMap(
+                b -> b.getScenarioCode().toUpperCase(),
+                b -> b
+        ));
+    }
 
-            default -> throw new IllegalArgumentException("Unsupported Scenario Code found in database: " + scenarioCode);
-        };
+    public AmlScenarioBlueprint getBlueprint(String scenarioCode) {
+        AmlScenarioBlueprint blueprint = blueprintMap.get(scenarioCode.toUpperCase());
+
+        if (blueprint == null) {
+            throw new IllegalArgumentException("Unsupported Scenario Code: " + scenarioCode);
+        }
+
+        return blueprint;
     }
 }

@@ -12,6 +12,7 @@ import org.springframework.web.HttpRequestHandler;
 import org.springframework.web.bind.annotation.*;
 import org.tss.tm.common.enums.JobType;
 import org.tss.tm.common.response.ApiResponse;
+import org.tss.tm.dto.tenant.request.AmlJobRequest;
 import org.tss.tm.dto.tenant.response.RuleEngineResponse;
 import org.tss.tm.entity.system.JobRecord;
 import org.tss.tm.service.interfaces.AmlJobService;
@@ -30,10 +31,10 @@ public class AmlJobController {
     @PostMapping("/execute")
     @PreAuthorize("hasRole('BANK_ADMIN')")
     public ResponseEntity<ApiResponse<RuleEngineResponse>> triggerManualJob(
-            HttpServletRequest request
+            HttpServletRequest request, @RequestBody AmlJobRequest jobRequest
     ) {
 
-        RuleEngineResponse response=amlJobService.executeTenantScenarios();
+        RuleEngineResponse response=amlJobService.executeTenantScenarios(jobRequest);
 
         return ResponseEntity.ok(ApiResponse.of(
                 HttpStatus.OK,

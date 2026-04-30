@@ -3,9 +3,13 @@ package org.tss.tm.ruleEngine;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.tss.tm.common.enums.ErrorSeverity;
+import org.tss.tm.entity.tenant.RuleEngineError;
+import org.tss.tm.repository.RuleEngineErrorRepo;
 import org.tss.tm.service.interfaces.ScenarioParamService;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.UUID;
 
@@ -16,51 +20,50 @@ public class ScenarioExecutor {
 
     private final AmlExecutionEngine engine;
     private final ScenarioParamService paramService;
+    private final RuleEngineErrorRepo ruleEngineErrorRepo;
 
-    public void runScenario(AmlScenarioBlueprint blueprint, UUID jobId) {
+    public void runScenario(AmlScenarioBlueprint blueprint, UUID jobId, LocalDate fromDate, LocalDate toDate) {
 
-        Map<String, Map<String, Object>> nestedParams=paramService.getParams(blueprint.getScenarioId());
+        Map<String, Map<String, Object>> nestedParams = paramService.getParams(blueprint.getScenarioId());
 
         Map<String, Object> commonParams = nestedParams.get("COMMON");
         if (commonParams == null) {
-            throw new IllegalArgumentException("COMMON key not found");
+            RuleEngineError ruleEngineError=RuleEngineError.builder().info("Parameter Failure: No common parameter found").scenarioCode(blueprint.getScenarioCode()).jobId(String.valueOf(jobId)).severity(ErrorSeverity.MEDIUM).build();
+            ruleEngineErrorRepo.save(ruleEngineError);
+            throw new IllegalArgumentException("COMMON keys not found");
         }
 
-        int lookbackDays= (int) commonParams.getOrDefault("LOOKBACK_DAYS",0);
-        int lookbackWindow=(int) commonParams.getOrDefault("LOOKBACK_WINDOW",0);
+        long lookbackDays = (long) commonParams.getOrDefault("LOOKBACK_DAYS", 0);
+        long lookbackWindow = ChronoUnit.DAYS.between(fromDate,toDate)+1;
 
-        if (lookbackWindow <= 0 || lookbackDays <= 0) {
+        if (lookbackDays <= 0) {
+            RuleEngineError ruleEngineError=RuleEngineError.builder().info("Parameter Failure: Negative value of look back days").scenarioCode(blueprint.getScenarioCode()).jobId(String.valueOf(jobId)).severity(ErrorSeverity.MEDIUM).build();
+            ruleEngineErrorRepo.save(ruleEngineError);
             throw new IllegalArgumentException("Days must be positive integer values.");
         }
 
-        LocalDate today = LocalDate.now();
-        if (lookbackWindow <= lookbackDays) {
-
-            int effectiveLookback = Math.min(lookbackWindow, lookbackDays);
-
-            if (lookbackWindow < lookbackDays) {
-                log.warn("Partial execution: required {} days, provided {}. Engine will use effective lookback of {}", lookbackDays, lookbackWindow, effectiveLookback);
-            } else {
-                log.info("Snapshot execution for exactly {} days.", lookbackDays);
-            }
+        if (lookbackWindow < lookbackDays) {
+            RuleEngineError ruleEngineError=RuleEngineError.builder().info("Warning: Minimum "+lookbackDays+" required, provided: "+lookbackWindow).scenarioCode(blueprint.getScenarioCode()).jobId(String.valueOf(jobId)).severity(ErrorSeverity.HIGH).build();
+            ruleEngineErrorRepo.save(ruleEngineError);
+                log.warn("Partial execution: Minimum required {} days, provided {}", lookbackDays, lookbackWindow);
 
             if (blueprint.isAggregateScenario()) {
-                engine.executeMultipleTxnScenario(blueprint,nestedParams, today, jobId, effectiveLookback);
+                engine.executeMultipleTxnScenario(blueprint, nestedParams, toDate, jobId, lookbackWindow);
             } else {
-                engine.executeSingleTxnScenario(blueprint,nestedParams, today, jobId);
+                engine.executeSingleTxnScenario(blueprint, nestedParams, toDate, jobId);
             }
             return;
         }
 
-        int totalWindows = lookbackWindow - lookbackDays + 1;
+        long totalWindows = lookbackWindow - lookbackDays+1;
 
         for (int i = 0; i < totalWindows; i++) {
-            LocalDate anchor = today.minusDays(i);
+            LocalDate slidingToDate = toDate.minusDays(i);
 
             if (blueprint.isAggregateScenario()) {
-                engine.executeMultipleTxnScenario(blueprint,nestedParams, today, jobId, lookbackDays);
+                engine.executeMultipleTxnScenario(blueprint, nestedParams, slidingToDate, jobId, lookbackDays);
             } else {
-                engine.executeSingleTxnScenario(blueprint,nestedParams, anchor, jobId);
+                engine.executeSingleTxnScenario(blueprint, nestedParams, slidingToDate, jobId);
             }
         }
     }

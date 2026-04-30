@@ -3,18 +3,24 @@ package org.tss.tm.ruleEngine;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.UUID;
 
 @Slf4j
+@Component
 public class PassThroughScenarioBlueprint implements AmlScenarioBlueprint {
 
-    private final UUID scenarioId;
-    private final boolean isAggregate=true;
 
-    public PassThroughScenarioBlueprint(UUID scenarioId ) {
-        this.scenarioId = scenarioId;
+    private UUID scenarioId;
+    private final boolean isAggregate=true;
+    private static final String scenarioCode = "S1_PASS_THROUGH";
+    private final String logicalOperator=" AND ";
+
+    @Override
+    public String getScenarioCode() {
+        return scenarioCode;
     }
 
     @Override
@@ -24,7 +30,7 @@ public class PassThroughScenarioBlueprint implements AmlScenarioBlueprint {
 
     @Override
     public String getLogicalOperator() {
-        return " AND ";
+        return logicalOperator;
     }
 
     @Override
@@ -39,6 +45,11 @@ public class PassThroughScenarioBlueprint implements AmlScenarioBlueprint {
     @Override
     public boolean isAggregateScenario() {
         return isAggregate;
+    }
+
+    @Override
+    public void setScenarioId(UUID scenarioId) {
+        this.scenarioId = scenarioId;
     }
 
     @Override

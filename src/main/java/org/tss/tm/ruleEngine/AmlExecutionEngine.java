@@ -8,10 +8,12 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.tss.tm.common.enums.AlertStatus;
+import org.tss.tm.common.enums.ErrorSeverity;
 import org.tss.tm.entity.system.JobRecord;
 import org.tss.tm.entity.system.Rule;
 import org.tss.tm.entity.system.Scenario;
 import org.tss.tm.entity.tenant.Alert;
+import org.tss.tm.entity.tenant.RuleEngineError;
 import org.tss.tm.repository.*;
 import org.tss.tm.service.interfaces.ScenarioParamService;
 
@@ -38,19 +40,20 @@ public class AmlExecutionEngine {
     private final RuleRepo ruleRepo;
     private final TransactionTemplate transactionTemplate;
     private final EntityManager entityManager;
+    private final RuleEngineErrorRepo ruleEngineErrorRepo;
 
     private record ExtractedCriminal(UUID customerId, UUID[] involvedTxns) {
     }
 
-    public void executeMultipleTxnScenario(AmlScenarioBlueprint blueprint, Map<String, Map<String, Object>> nestedParams, LocalDate anchorDate, UUID currentJobId, int lookbackDays) {
+    public void executeMultipleTxnScenario(AmlScenarioBlueprint blueprint, Map<String, Map<String, Object>> nestedParams, LocalDate toDate, UUID currentJobId, long lookbackDays) {
 
         if (blueprint.getRules().isEmpty())
             return;
 
         Map<String, Object> flatSqlParams = new HashMap<>();
-        flatSqlParams.put("LOOKBACK_DAYS",lookbackDays);
+        flatSqlParams.put("LOOKBACK_DAYS", lookbackDays);
 
-        flatSqlParams.put("ANCHOR_DATE", anchorDate);
+        flatSqlParams.put("ANCHOR_DATE", toDate);
 
         for (Map.Entry<String, Map<String, Object>> ruleEntry : nestedParams.entrySet()) {
             String ruleCode = ruleEntry.getKey();
@@ -69,6 +72,8 @@ public class AmlExecutionEngine {
 
             if (!ruleParams.keySet().stream().filter(k -> !k.equals("LOOKBACK_DAYS"))
                     .allMatch(k -> flatSqlParams.containsKey(rule.getRuleCode() + "_" + k))) {
+                RuleEngineError ruleEngineError = RuleEngineError.builder().info("Parameter Failure: Parameter mismatch for rules").scenarioCode(blueprint.getScenarioCode()).jobId(String.valueOf(currentJobId)).ruleCode(rule.getRuleCode()).severity(ErrorSeverity.MEDIUM).build();
+                ruleEngineErrorRepo.save(ruleEngineError);
                 throw new IllegalStateException("Parameter mismatch in rule: " + rule.getRuleCode());
             }
 
@@ -82,8 +87,11 @@ public class AmlExecutionEngine {
         List<Rule> dbRulesForScenario = new ArrayList<>();
         for (String code : ruleCodes) {
             Rule dbRule = dbRuleMap.get(code);
-            if (dbRule == null)
+            if (dbRule == null) {
+                RuleEngineError ruleEngineError=RuleEngineError.builder().info("Rule Failure: Internal issue").scenarioCode(blueprint.getScenarioCode()).jobId(String.valueOf(currentJobId)).ruleCode(code).severity(ErrorSeverity.MEDIUM).build();
+                ruleEngineErrorRepo.save(ruleEngineError);
                 throw new IllegalStateException("Missing DB rule: " + code);
+            }
             dbRulesForScenario.add(dbRule);
         }
 
@@ -108,7 +116,7 @@ public class AmlExecutionEngine {
                     ON CONFLICT (alert_id, transaction_id) WHERE rule_id IS NULL DO NOTHING
                 """;
         log.info("Executing AML Engine query for scenario {} at anchor {} with effective lookback {}",
-                blueprint.getScenarioId(), anchorDate, lookbackDays);
+                blueprint.getScenarioId(), toDate, lookbackDays);
 
         List<ExtractedCriminal> criminals = jdbcTemplate.query(finalSqlQuery, flatSqlParams, (rs, rowNum) -> {
             UUID customerId = UUID.fromString(rs.getString("customer_id"));
@@ -196,7 +204,7 @@ public class AmlExecutionEngine {
                         }
                     });
                 } catch (Exception e) {
-                    log.error("AML Multiple Txn Scenario Failed. Exception: {}",e.getMessage());
+                    log.error("AML Multiple Txn Scenario Failed. Exception: {}", e.getMessage());
                     status.setRollbackOnly();
                 }
                 return null;
@@ -204,9 +212,10 @@ public class AmlExecutionEngine {
         }
     }
 
-    record SingleTxnResult(UUID customerId, UUID txnId, UUID brokenRuleId) {}
+    record SingleTxnResult(UUID customerId, UUID txnId, UUID brokenRuleId) {
+    }
 
-    public void executeSingleTxnScenario(AmlScenarioBlueprint blueprint,Map<String, Map<String, Object>> nestedParams, LocalDate anchorDate, UUID currentJobId) {
+    public void executeSingleTxnScenario(AmlScenarioBlueprint blueprint, Map<String, Map<String, Object>> nestedParams, LocalDate anchorDate, UUID currentJobId) {
         if (blueprint.getRules().isEmpty())
             return;
 
@@ -231,12 +240,12 @@ public class AmlExecutionEngine {
         String finalSqlQuery = blueprint.getBaseSqlTemplate();
 
         String insert1to1Sql = """
-                INSERT INTO alert_info (alert_info_id, alert_id, rule_id, scenario_id, transaction_id)
-                VALUES (gen_random_uuid(), ?, ?, ?, ?)
-                ON CONFLICT (scenario_id, rule_id, transaction_id) 
-                WHERE rule_id IS NOT NULL AND transaction_id IS NOT NULL 
-                DO NOTHING
-            """;
+                    INSERT INTO alert_info (alert_info_id, alert_id, rule_id, scenario_id, transaction_id)
+                    VALUES (gen_random_uuid(), ?, ?, ?, ?)
+                    ON CONFLICT (scenario_id, rule_id, transaction_id) 
+                    WHERE rule_id IS NOT NULL AND transaction_id IS NOT NULL 
+                    DO NOTHING
+                """;
 
         List<SingleTxnResult> results = jdbcTemplate.query(finalSqlQuery, flatSqlParams, (rs, rowNum) -> {
             UUID customerId = UUID.fromString(rs.getString("customer_id"));
@@ -289,8 +298,8 @@ public class AmlExecutionEngine {
                         }
                     });
 
-                }catch (Exception e) {
-                    log.error("AML Single Txn Scenario failed. Exception: {}",e.getMessage());
+                } catch (Exception e) {
+                    log.error("AML Single Txn Scenario failed. Exception: {}", e.getMessage());
                     status.setRollbackOnly();
                 }
                 return null;
