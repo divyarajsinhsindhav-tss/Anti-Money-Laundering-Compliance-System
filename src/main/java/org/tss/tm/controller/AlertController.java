@@ -31,15 +31,16 @@ public class AlertController {
     private final AlertService alertService;
 
     @GetMapping
-    @PreAuthorize("hasRole('BANK_ADMIN')")
+    @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
     public ResponseEntity<ApiResponse<PagedResponse<AlertResponse>>> getAllAlerts(
+            @AuthenticationPrincipal UserDetails userDetails,
             @RequestParam(required = false) String alertCode,
             @RequestParam(required = false) AlertStatus status,
             @PageableDefault(size = 10) Pageable pageable,
             HttpServletRequest httpServletRequest
     ) {
-        log.info("Received request to fetch all alerts with alertCode: {} and status: {}", alertCode, status);
-        Page<AlertResponse> alerts = alertService.getAllAlerts(alertCode, status, pageable);
+        log.info("Received request to fetch all alerts with alertCode: {} and status: {} by user: {}", alertCode, status, userDetails.getUsername());
+        Page<AlertResponse> alerts = alertService.getAllAlerts(userDetails.getUsername(), alertCode, status, pageable);
 
         PagedResponse<AlertResponse> pagedResponse = PagedResponse.of(
                 alerts.getContent(),
@@ -79,7 +80,7 @@ public class AlertController {
     }
 
     @GetMapping("/{alertCode}")
-    @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIENCE_OFFICER')")
+    @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
     public ResponseEntity<ApiResponse<AlertDetailResponse>> getAlert(
             @AuthenticationPrincipal UserDetails userDetail,
             @PathVariable String alertCode,

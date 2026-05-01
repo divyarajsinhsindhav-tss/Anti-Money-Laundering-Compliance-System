@@ -74,21 +74,36 @@ public class AlertServiceImpl implements AlertService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<AlertResponse> getAllAlerts(String alertCode, AlertStatus status, Pageable pageable) {
-        log.info("Fetching all alerts with filter alertCode: {}, status: {}", alertCode, status);
-        
+    public Page<AlertResponse> getAllAlerts(String email, String alertCode, AlertStatus status, Pageable pageable) {
+        log.info("Fetching all alerts for user: {} with filter alertCode: {}, status: {}", email, alertCode, status);
+
+        TenantUser user = tenantUserRepo.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("TenantUser", email));
+
         Page<Alert> alertPage;
         boolean hasCode = alertCode != null && !alertCode.trim().isEmpty();
         boolean hasStatus = status != null;
 
-        if (hasCode && hasStatus) {
-            alertPage = alertRepo.findAllByAlertCodeContainingIgnoreCaseAndAlertStatus(alertCode, status, pageable);
-        } else if (hasCode) {
-            alertPage = alertRepo.findAllByAlertCodeContainingIgnoreCase(alertCode, pageable);
-        } else if (hasStatus) {
-            alertPage = alertRepo.findAllByAlertStatus(status, pageable);
+        if (user.getRole() == UserRole.COMPLIANCE_OFFICER) {
+            if (hasCode && hasStatus) {
+                alertPage = alertRepo.findAllByAmlCase_AssignedTo_EmailAndAlertCodeContainingIgnoreCaseAndAlertStatus(email, alertCode, status, pageable);
+            } else if (hasCode) {
+                alertPage = alertRepo.findAllByAmlCase_AssignedTo_EmailAndAlertCodeContainingIgnoreCase(email, alertCode, pageable);
+            } else if (hasStatus) {
+                alertPage = alertRepo.findAllByAmlCase_AssignedTo_EmailAndAlertStatus(email, status, pageable);
+            } else {
+                alertPage = alertRepo.findAllByAmlCase_AssignedTo_Email(email, pageable);
+            }
         } else {
-            alertPage = alertRepo.findAll(pageable);
+            if (hasCode && hasStatus) {
+                alertPage = alertRepo.findAllByAlertCodeContainingIgnoreCaseAndAlertStatus(alertCode, status, pageable);
+            } else if (hasCode) {
+                alertPage = alertRepo.findAllByAlertCodeContainingIgnoreCase(alertCode, pageable);
+            } else if (hasStatus) {
+                alertPage = alertRepo.findAllByAlertStatus(status, pageable);
+            } else {
+                alertPage = alertRepo.findAll(pageable);
+            }
         }
 
         return alertPage.map(alertMapper::toResponse);

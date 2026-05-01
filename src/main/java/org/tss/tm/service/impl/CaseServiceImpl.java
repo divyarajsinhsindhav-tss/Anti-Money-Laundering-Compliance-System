@@ -26,7 +26,11 @@ import org.tss.tm.mapper.AlertMapper;
 import org.tss.tm.service.interfaces.CaseService;
 import org.tss.tm.service.interfaces.TenantService;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import org.tss.tm.entity.tenant.Customer;
 
 @Slf4j
 @Service
@@ -73,7 +77,7 @@ public class CaseServiceImpl implements CaseService {
         entityManager.refresh(savedCase);
 
         if (savedCase.getAlerts() == null) {
-            savedCase.setAlerts(new java.util.ArrayList<>());
+            savedCase.setAlerts(new ArrayList<>());
         }
 
         for (Alert alert : alerts) {
@@ -127,5 +131,86 @@ public class CaseServiceImpl implements CaseService {
                 .caseResponse(caseMapper.toResponse(amlCase))
                 .alerts(alertMapper.toResponseList(caseAlerts))
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public List<CaseResponse> autoGenerateCases(String createdByEmail) {
+        log.info("Auto-generating cases from OPEN alerts for user: {}", createdByEmail);
+
+        TenantUser creator = tenantUserRepo.findByEmail(createdByEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("TenantUser", createdByEmail));
+
+        List<Alert> openAlerts = alertRepo.findAllByAlertStatus(AlertStatus.OPEN);
+        log.info("Found {} OPEN alerts to process", openAlerts.size());
+
+        if (openAlerts.isEmpty()) {
+            return List.of();
+        }
+
+        // Group alerts by customer
+        Map<Customer, List<Alert>> alertsByCustomer = openAlerts.stream()
+                .collect(Collectors.groupingBy(Alert::getCustomer));
+
+        List<AmlCase> generatedCases = new ArrayList<>();
+
+        for (Map.Entry<Customer, List<Alert>> entry : alertsByCustomer.entrySet()) {
+            Customer customer = entry.getKey();
+            List<Alert> customerAlerts = entry.getValue();
+
+            AmlCase amlCase = AmlCase.builder()
+                    .createdBy(creator)
+                    .status(CaseStatus.OPEN)
+                    .notes("Auto-generated case for customer: " + customer.getFirstName() + " " + customer.getLastName()
+                            + " (CIF: " + customer.getCif() + ")")
+                    .build();
+
+            // Save the case first
+            AmlCase savedCase = caseRepo.saveAndFlush(amlCase);
+            entityManager.refresh(savedCase);
+
+            if (savedCase.getAlerts() == null) {
+                savedCase.setAlerts(new ArrayList<>());
+            }
+
+            for (Alert alert : customerAlerts) {
+                alert.setAmlCase(savedCase);
+                alert.setAlertStatus(AlertStatus.IN_CASE);
+                savedCase.getAlerts().add(alert);
+            }
+            alertRepo.saveAll(customerAlerts);
+            generatedCases.add(savedCase);
+
+            log.info("Generated case {} with {} alerts for customer {}", savedCase.getCaseCode(), customerAlerts.size(),
+                    customer.getCif());
+        }
+
+        return generatedCases.stream().map(caseMapper::toResponse).toList();
+    }
+
+    @Override
+    @Transactional
+    public CaseResponse assignCase(String caseCode, String assignedToUserCode) {
+        log.info("Assigning case {} to user code {}", caseCode, assignedToUserCode);
+
+        AmlCase amlCase = caseRepo.findByCaseCode(caseCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Case", caseCode));
+
+        if (amlCase.getStatus() != CaseStatus.OPEN && amlCase.getStatus() != CaseStatus.UNDER_REVIEW) {
+            throw new BusinessRuleException("Cases can only be assigned or reassigned when in OPEN or UNDER_REVIEW status", "INVALID_STATUS");
+        }
+
+        TenantUser assignedTo = tenantUserRepo.findByUserCode(assignedToUserCode)
+                .orElseThrow(() -> new ResourceNotFoundException("TenantUser", assignedToUserCode));
+
+        if (assignedTo.getRole() != UserRole.COMPLIANCE_OFFICER) {
+            throw new BusinessRuleException("Cases can only be assigned to Compliance Officers", "INVALID_ASSIGNMENT");
+        }
+
+        amlCase.setAssignedTo(assignedTo);
+        amlCase.setStatus(CaseStatus.UNDER_REVIEW);
+        AmlCase savedCase = caseRepo.save(amlCase);
+
+        return caseMapper.toResponse(savedCase);
     }
 }

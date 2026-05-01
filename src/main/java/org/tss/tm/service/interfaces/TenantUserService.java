@@ -11,5 +11,5 @@ public interface TenantUserService {
 
     TenantUserResponse getTenantUserBasicDetails(String userEmail);
 
-    List<UserResponse> getAllComplienceOfficer(String userEmail);
+    List<UserResponse> getAllComplianceOfficer(String userEmail);
 }

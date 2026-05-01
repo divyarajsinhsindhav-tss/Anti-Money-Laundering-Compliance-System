@@ -65,14 +65,14 @@ public class TenantUserController {
         ));
     }
 
-    @GetMapping("/complience-officers")
+    @GetMapping("/compliance-officers")
     @PreAuthorize("hasRole('BANK_ADMIN')")
     public ResponseEntity<ApiResponse<List<UserResponse>>> getComplianceOfficers(
             @AuthenticationPrincipal UserDetails userDetails,
             HttpServletRequest httpServletRequest
     ) {
         log.info("Fetching all compliance officers for user: {}", userDetails.getUsername());
-        List<UserResponse> response = tenantUserService.getAllComplienceOfficer(userDetails.getUsername());
+        List<UserResponse> response = tenantUserService.getAllComplianceOfficer(userDetails.getUsername());
         return ResponseEntity.ok(ApiResponse.of(
                 HttpStatus.OK,
                 "Compliance officers fetched successfully",

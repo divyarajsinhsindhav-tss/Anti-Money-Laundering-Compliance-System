@@ -8,7 +8,7 @@ import org.tss.tm.dto.tenant.response.AlertDetailResponse;
 import org.tss.tm.dto.tenant.response.AlertResponse;
 
 public interface AlertService {
-    Page<AlertResponse> getAllAlerts(String alertCode, AlertStatus status, Pageable pageable);
+    Page<AlertResponse> getAllAlerts(String email, String alertCode, AlertStatus status, Pageable pageable);
 
     AlertResponse updateAlertStatus(String alertCode, AlertStatus status, String reason, String changedByEmail);
 

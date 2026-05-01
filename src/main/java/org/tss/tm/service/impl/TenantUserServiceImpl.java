@@ -71,7 +71,7 @@ public class TenantUserServiceImpl implements TenantUserService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<UserResponse> getAllComplienceOfficer(String userEmail) {
+    public List<UserResponse> getAllComplianceOfficer(String userEmail) {
         log.info("Fetching all compliance officers requested by: {}", userEmail);
         List<TenantUser> complianceOfficers = tenantUserRepo.findAllByRole(UserRole.COMPLIANCE_OFFICER);
         List<UserResponse> responses = userMapper.toResponseList(complianceOfficers);

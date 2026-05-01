@@ -9,10 +9,16 @@ import org.tss.tm.dto.tenant.response.CaseResponse;
 import org.tss.tm.entity.tenant.AmlCase;
 import org.tss.tm.dto.tenant.response.CaseDetailResponse;
 
+import java.util.List;
+
 public interface CaseService {
     AmlCase createCase(CreateCaseRequest request, String createdByEmail);
+
     Page<CaseResponse> getAllCases(CaseStatus status, String email, boolean isAdmin, Pageable pageable);
 
-    @Transactional(readOnly = true)
     CaseDetailResponse getCase(String caseCode, String email, boolean isAdmin);
+
+    List<CaseResponse> autoGenerateCases(String createdByEmail);
+
+    CaseResponse assignCase(String caseCode, String assignedToUserCode);
 }

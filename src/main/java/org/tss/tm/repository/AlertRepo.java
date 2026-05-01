@@ -15,6 +15,8 @@ public interface AlertRepo extends JpaRepository<Alert, UUID> {
 
     Page<Alert> findAllByAlertStatus(AlertStatus status, Pageable pageable);
 
+    List<Alert> findAllByAlertStatus(AlertStatus status);
+
     Optional<Alert> findByAlertCode(String alertCode);
 
     Optional<Alert> findByCustomer_CustomerIdAndScenario_ScenarioIdAndAlertStatus(
@@ -24,6 +26,15 @@ public interface AlertRepo extends JpaRepository<Alert, UUID> {
 
     Page<Alert> findAllByAlertCodeContainingIgnoreCaseAndAlertStatus(String alertCode, AlertStatus status,
             Pageable pageable);
+
+    Page<Alert> findAllByAmlCase_AssignedTo_Email(String email, Pageable pageable);
+
+    Page<Alert> findAllByAmlCase_AssignedTo_EmailAndAlertCodeContainingIgnoreCase(String email, String alertCode, Pageable pageable);
+
+    Page<Alert> findAllByAmlCase_AssignedTo_EmailAndAlertStatus(String email, AlertStatus status, Pageable pageable);
+
+    Page<Alert> findAllByAmlCase_AssignedTo_EmailAndAlertCodeContainingIgnoreCaseAndAlertStatus(String email, String alertCode, AlertStatus status,
+                                                                                               Pageable pageable);
 
     List<Alert> findAllByAmlCase_CaseCode(String caseCode);
 }
