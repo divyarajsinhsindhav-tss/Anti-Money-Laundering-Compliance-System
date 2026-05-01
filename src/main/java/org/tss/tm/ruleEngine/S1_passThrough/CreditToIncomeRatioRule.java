@@ -1,12 +1,14 @@
-package org.tss.tm.ruleEngine;
+package org.tss.tm.ruleEngine.S1_passThrough;
+
+import org.tss.tm.ruleEngine.AmlRule;
 
 import java.util.Map;
 
-public class DebitToIncomeRatioRule implements AmlRule {
+public class CreditToIncomeRatioRule implements AmlRule {
 
     @Override
     public String getRuleCode() {
-        return "S1_R2_DEBIT_VS_INCOME";
+        return "S1_R1_CREDIT_VS_INCOME";
     }
 
     @Override
@@ -18,6 +20,6 @@ public class DebitToIncomeRatioRule implements AmlRule {
             throw new IllegalArgumentException("Missing parameter: MIN_INCOME_CONSTANT");
         }
 
-        return "(total_debits >= ((:" + getRuleCode() + "_MIN_PCT_OF_INCOME / 100.0) * GREATEST(COALESCE(customerIncome, 0), :" + getRuleCode() + "_MIN_INCOME_CONSTANT)))";
+        return "(total_credits >= ((:" + getRuleCode() + "_MIN_PCT_OF_INCOME / 100.0) * GREATEST(COALESCE(customerIncome, 0), :" + getRuleCode() + "_MIN_INCOME_CONSTANT)))";
     }
 }

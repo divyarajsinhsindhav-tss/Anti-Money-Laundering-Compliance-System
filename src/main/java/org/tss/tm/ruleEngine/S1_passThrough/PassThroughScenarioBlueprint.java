@@ -1,9 +1,10 @@
-package org.tss.tm.ruleEngine;
+package org.tss.tm.ruleEngine.S1_passThrough;
 
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.tss.tm.ruleEngine.AmlRule;
+import org.tss.tm.ruleEngine.AmlScenarioBlueprint;
 
 import java.util.List;
 import java.util.UUID;
@@ -37,7 +38,7 @@ public class PassThroughScenarioBlueprint implements AmlScenarioBlueprint {
     public List<AmlRule> getRules() {
         return List.of(
                 new CreditToIncomeRatioRule(),
-                new DebitToIncomeRatioRule(),
+                new DebitToCreditRatioRule(),
                 new LowNetRetentionRule()
         );
     }

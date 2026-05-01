@@ -16,6 +16,7 @@ import org.tss.tm.entity.tenant.RuleEngineError;
 import org.tss.tm.repository.*;
 import org.tss.tm.service.interfaces.ParamService;
 
+import java.sql.PreparedStatement;
 import java.util.*;
 import java.time.LocalDate;
 
@@ -176,7 +177,7 @@ public class AmlExecutionEngine {
                     Session session = entityManager.unwrap(Session.class);
 
                     session.doWork(connection -> {
-                        try (java.sql.PreparedStatement psRule = connection.prepareStatement(insertRuleSql)) {
+                        try (PreparedStatement psRule = connection.prepareStatement(insertRuleSql)) {
                             for (Rule dbRule : dbRulesForScenario) {
                                 psRule.setObject(1, targetAlert.getAlertId());
                                 psRule.setObject(2, dbRule.getRuleId());
@@ -186,7 +187,7 @@ public class AmlExecutionEngine {
                             psRule.executeBatch();
                         }
 
-                        try (java.sql.PreparedStatement psTxn = connection.prepareStatement(insertTxnSql)) {
+                        try (PreparedStatement psTxn = connection.prepareStatement(insertTxnSql)) {
                             int count = 0;
                             for (UUID newTxnId : netNewEvidence) {
                                 psTxn.setObject(1, targetAlert.getAlertId());
