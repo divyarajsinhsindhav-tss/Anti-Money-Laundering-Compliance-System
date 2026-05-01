@@ -27,11 +27,15 @@ import org.tss.tm.mapper.AlertMapper;
 import org.tss.tm.service.interfaces.CaseService;
 import org.tss.tm.service.interfaces.TenantService;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
 import org.tss.tm.entity.tenant.Customer;
+
+import static org.tss.tm.common.enums.CaseStatus.*;
 
 @Slf4j
 @Service
@@ -70,7 +74,7 @@ public class CaseServiceImpl implements CaseService {
         AmlCase amlCase = AmlCase.builder()
                 .createdBy(creator)
                 .assignedTo(assignedTo)
-                .status(CaseStatus.OPEN)
+                .status(OPEN)
                 .notes(request.getNotes())
                 .build();
 
@@ -161,7 +165,7 @@ public class CaseServiceImpl implements CaseService {
 
             AmlCase amlCase = AmlCase.builder()
                     .createdBy(creator)
-                    .status(CaseStatus.OPEN)
+                    .status(OPEN)
                     .notes("Auto-generated case for customer: " + customer.getFirstName() + " " + customer.getLastName()
                             + " (CIF: " + customer.getCif() + ")")
                     .build();
@@ -197,7 +201,7 @@ public class CaseServiceImpl implements CaseService {
         AmlCase amlCase = caseRepo.findByCaseCode(caseCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Case", caseCode));
 
-        if (amlCase.getStatus() != CaseStatus.OPEN && amlCase.getStatus() != CaseStatus.UNDER_REVIEW) {
+        if (amlCase.getStatus() != OPEN && amlCase.getStatus() != CaseStatus.UNDER_REVIEW) {
             throw new BusinessRuleException("Cases can only be assigned or reassigned when in OPEN or UNDER_REVIEW status", "INVALID_STATUS");
         }
 
@@ -217,22 +221,56 @@ public class CaseServiceImpl implements CaseService {
 
     @Override
     @Transactional
-    public CaseDetailResponse updateCase(String caseCode, UpdateCaseStatusRequest request, String email) {
+    public CaseDetailResponse updateCaseStatus(String caseCode, UpdateCaseStatusRequest request, String email) {
         log.info("Updating status for case {} to {} by {}", caseCode, request.getCaseStatus(), email);
+
 
         AmlCase amlCase = caseRepo.findByCaseCode(caseCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Case", caseCode));
 
+        List<Alert> caseAlerts = alertRepo.findAllByAmlCase_CaseCode(amlCase.getCaseCode());
+
+        if (caseAlerts == null || caseAlerts.isEmpty()) {
+            throw new IllegalArgumentException("Empty Case found");
+        }
+
+        if (amlCase.getStatus() == request.getCaseStatus()) {
+            CaseDetailResponse.builder()
+                    .caseResponse(caseMapper.toResponse(amlCase))
+                    .alerts(alertMapper.toResponseList(caseAlerts))
+                    .build();
+        }
+
         TenantUser user = tenantUserRepo.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("TenantUser", email));
 
-        if (user.getRole() != UserRole.BANK_ADMIN && (amlCase.getAssignedTo() == null || !amlCase.getAssignedTo().getEmail().equals(email))) {
+        if (!amlCase.getAssignedTo().getEmail().equals(email)) {
             throw new BusinessRuleException("You do not have permission to update this case", "ACCESS_DENIED");
         }
+        if (request.getCaseStatus() == null || request.getCaseStatus() == OPEN || request.getCaseStatus() == UNDER_REVIEW) {
+            throw new BusinessRuleException("Invalid status type");
+        }
 
-        amlCase.setStatus(request.getCaseStatus());
-        if (request.getCaseStatus() == CaseStatus.CLOSED) {
-            amlCase.setClosedAt(java.time.LocalDateTime.now());
+        int closeCount = 0;
+        for (Alert alert : caseAlerts) {
+
+            if (request.getCaseStatus() == ESCALATED) {
+                if (alert.getAlertStatus() != AlertStatus.CLOSED && alert.getAlertStatus() != AlertStatus.REVIEWED) {
+                    throw new BusinessRuleException("Case is not yet ready to close");
+                }
+                alert.setAlertStatus(AlertStatus.ESCALATED);
+            }
+            if (request.getCaseStatus() == CLOSED && alert.getAlertStatus() != AlertStatus.CLOSED) {
+                throw new BusinessRuleException("Close all alerts before closing the case");
+            }
+            if (alert.getAlertStatus() == AlertStatus.CLOSED) closeCount++;
+        }
+
+        if (request.getCaseStatus() == ESCALATED) {
+            if (closeCount == caseAlerts.size()) {
+                throw new BusinessRuleException("All alerts are closed.");
+            }
+            alertRepo.saveAll(caseAlerts);
         }
 
         if (request.getReason() != null && !request.getReason().isEmpty()) {
@@ -240,9 +278,12 @@ public class CaseServiceImpl implements CaseService {
             amlCase.setNotes(currentNotes + "\n\nStatus changed to " + request.getCaseStatus() + ". Reason: " + request.getReason());
         }
 
+        amlCase.setStatus(request.getCaseStatus());
         AmlCase savedCase = caseRepo.save(amlCase);
 
-        List<Alert> caseAlerts = alertRepo.findAllByAmlCase_CaseCode(savedCase.getCaseCode());
+        if (request.getCaseStatus() == CaseStatus.CLOSED) {
+            amlCase.setClosedAt(LocalDateTime.now());
+        }
 
         return CaseDetailResponse.builder()
                 .caseResponse(caseMapper.toResponse(savedCase))

@@ -22,8 +22,11 @@ import org.tss.tm.repository.AlertRepo;
 import org.tss.tm.repository.TenantUserRepo;
 import org.tss.tm.service.interfaces.AlertService;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+
+import static org.tss.tm.common.enums.CaseStatus.UNDER_REVIEW;
 
 @Service
 @RequiredArgsConstructor
@@ -44,8 +47,17 @@ public class AlertServiceImpl implements AlertService {
         Alert alert = alertRepo.findByAlertCode(alertCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Alert", alertCode));
 
-        if (status == AlertStatus.IN_CASE) {
-            throw new BusinessRuleException("Status cannot be updated to IN_CASE directly. It is only set when a case is created.");
+        if (status == AlertStatus.IN_CASE || status == AlertStatus.ESCALATED || status == AlertStatus.OPEN) {
+            throw new BusinessRuleException("Can not set to this status directly.");
+        }
+
+        AmlCase amlCase=alert.getAmlCase();
+        if(amlCase==null){
+            throw new BusinessRuleException("Case not found. Alert status can not be manually changed.");
+        }
+
+        if(amlCase.getStatus() ==null || amlCase.getStatus()!=UNDER_REVIEW){
+            throw new BusinessRuleException("Can not change alert status of this case.");
         }
 
         if (alert.getAlertStatus() == status) {
@@ -65,7 +77,7 @@ public class AlertServiceImpl implements AlertService {
                 .statusTo(status)
                 .changedBy(user)
                 .reason(reason)
-                .changedAt(java.time.LocalDateTime.now())
+                .changedAt(LocalDateTime.now())
                 .build();
         alertAuditRepo.save(audit);
 

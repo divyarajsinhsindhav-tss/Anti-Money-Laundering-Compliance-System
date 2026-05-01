@@ -24,7 +24,6 @@ import org.tss.tm.entity.tenant.AmlCase;
 import org.tss.tm.service.interfaces.CaseService;
 
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -110,7 +109,7 @@ public class CaseController {
                 HttpServletRequest httpServletRequest
         ) {
             log.info("Received request to update case status for case code: {} by {}", caseCode,  userDetails.getUsername());
-            CaseDetailResponse caseDetail = caseService.updateCase(caseCode, request, userDetails.getUsername());
+            CaseDetailResponse caseDetail = caseService.updateCaseStatus(caseCode, request, userDetails.getUsername());
             return ResponseEntity.ok(ApiResponse.of(
                     HttpStatus.OK,
                     "Case status updated successfully",
