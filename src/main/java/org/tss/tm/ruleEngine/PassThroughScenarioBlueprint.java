@@ -68,7 +68,7 @@ public class PassThroughScenarioBlueprint implements AmlScenarioBlueprint {
                 JOIN customer c ON a.customer_id = c.customer_id
                 WHERE ft.txn_timestamp >= CAST(:ANCHOR_DATE AS TIMESTAMP) - CAST(:LOOKBACK_DAYS || ' days' AS INTERVAL)
                   AND ft.txn_timestamp <= CAST(:ANCHOR_DATE AS TIMESTAMP)
-                GROUP BY a.customer_id
+                GROUP BY a.customer_id, c.income
             )
             SELECT customer_id, involved_txns
             FROM customer_metrics

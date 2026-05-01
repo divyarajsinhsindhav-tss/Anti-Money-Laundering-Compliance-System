@@ -33,7 +33,7 @@ public class ScenarioParam {
     private Scenario scenario;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "rule_id", nullable = false)
+    @JoinColumn(name = "rule_id", nullable = true)
     private Rule rule;
 
     @Column(name = "param_key", nullable = false)
