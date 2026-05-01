@@ -9,6 +9,7 @@ import org.tss.tm.common.enums.AlertStatus;
 import org.tss.tm.common.enums.CaseStatus;
 import org.tss.tm.common.enums.UserRole;
 import org.tss.tm.dto.tenant.request.CreateCaseRequest;
+import org.tss.tm.dto.tenant.request.UpdateCaseStatusRequest;
 import org.tss.tm.entity.tenant.Alert;
 import org.tss.tm.entity.tenant.AmlCase;
 import org.tss.tm.entity.tenant.TenantUser;
@@ -216,8 +217,36 @@ public class CaseServiceImpl implements CaseService {
 
     @Override
     @Transactional
-    public CaseDetailResponse updateCase(String caseCode, String email) {
-        //TODO
-        return null;
+    public CaseDetailResponse updateCase(String caseCode, UpdateCaseStatusRequest request, String email) {
+        log.info("Updating status for case {} to {} by {}", caseCode, request.getCaseStatus(), email);
+
+        AmlCase amlCase = caseRepo.findByCaseCode(caseCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Case", caseCode));
+
+        TenantUser user = tenantUserRepo.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("TenantUser", email));
+
+        if (user.getRole() != UserRole.BANK_ADMIN && (amlCase.getAssignedTo() == null || !amlCase.getAssignedTo().getEmail().equals(email))) {
+            throw new BusinessRuleException("You do not have permission to update this case", "ACCESS_DENIED");
+        }
+
+        amlCase.setStatus(request.getCaseStatus());
+        if (request.getCaseStatus() == CaseStatus.CLOSED) {
+            amlCase.setClosedAt(java.time.LocalDateTime.now());
+        }
+
+        if (request.getReason() != null && !request.getReason().isEmpty()) {
+            String currentNotes = amlCase.getNotes() != null ? amlCase.getNotes() : "";
+            amlCase.setNotes(currentNotes + "\n\nStatus changed to " + request.getCaseStatus() + ". Reason: " + request.getReason());
+        }
+
+        AmlCase savedCase = caseRepo.save(amlCase);
+
+        List<Alert> caseAlerts = alertRepo.findAllByAmlCase_CaseCode(savedCase.getCaseCode());
+
+        return CaseDetailResponse.builder()
+                .caseResponse(caseMapper.toResponse(savedCase))
+                .alerts(alertMapper.toResponseList(caseAlerts))
+                .build();
     }
 }

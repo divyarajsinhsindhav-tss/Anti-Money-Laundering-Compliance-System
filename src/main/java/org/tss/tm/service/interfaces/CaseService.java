@@ -21,4 +21,6 @@ public interface CaseService {
     List<CaseResponse> autoGenerateCases(String createdByEmail);
 
     CaseResponse assignCase(String caseCode, String assignedToUserCode);
+
+    CaseDetailResponse updateCase(String caseCode, org.tss.tm.dto.tenant.request.UpdateCaseStatusRequest request, String email);
 }

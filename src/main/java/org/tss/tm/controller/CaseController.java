@@ -16,6 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.tss.tm.common.enums.CaseStatus;
 import org.tss.tm.dto.tenant.request.CreateCaseRequest;
+import org.tss.tm.dto.tenant.request.UpdateCaseStatusRequest;
 import org.tss.tm.dto.tenant.response.CaseResponse;
 import org.tss.tm.dto.tenant.response.CreateCaseResponse;
 import org.tss.tm.dto.tenant.response.CaseDetailResponse;
@@ -105,11 +106,17 @@ public class CaseController {
         public ResponseEntity<ApiResponse<CaseDetailResponse>> updateCaseStatus(
                 @AuthenticationPrincipal UserDetails userDetails,
                 @PathVariable String caseCode,
+                @Valid @RequestBody UpdateCaseStatusRequest request,
                 HttpServletRequest httpServletRequest
         ) {
             log.info("Received request to update case status for case code: {} by {}", caseCode,  userDetails.getUsername());
-            //TODO
-            return null;
+            CaseDetailResponse caseDetail = caseService.updateCase(caseCode, request, userDetails.getUsername());
+            return ResponseEntity.ok(ApiResponse.of(
+                    HttpStatus.OK,
+                    "Case status updated successfully",
+                    httpServletRequest.getRequestURI(),
+                    caseDetail
+            ));
         }
 
         @PostMapping("/auto-generate")
