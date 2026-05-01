@@ -213,4 +213,11 @@ public class CaseServiceImpl implements CaseService {
 
         return caseMapper.toResponse(savedCase);
     }
+
+    @Override
+    @Transactional
+    public CaseDetailResponse updateCase(String caseCode, String email) {
+        //TODO
+        return null;
+    }
 }

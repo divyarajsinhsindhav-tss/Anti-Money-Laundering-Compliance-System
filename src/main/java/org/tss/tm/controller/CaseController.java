@@ -100,6 +100,18 @@ public class CaseController {
                                 caseDetail));
         }
 
+        @PostMapping("/{caseCode}/status")
+        @PreAuthorize("hasRole('COMPLIANCE_OFFICER')")
+        public ResponseEntity<ApiResponse<CaseDetailResponse>> updateCaseStatus(
+                @AuthenticationPrincipal UserDetails userDetails,
+                @PathVariable String caseCode,
+                HttpServletRequest httpServletRequest
+        ) {
+            log.info("Received request to update case status for case code: {} by {}", caseCode,  userDetails.getUsername());
+            //TODO
+            return null;
+        }
+
         @PostMapping("/auto-generate")
         @PreAuthorize("hasRole('BANK_ADMIN')")
         public ResponseEntity<ApiResponse<List<CaseResponse>>> autoGenerateCases(
