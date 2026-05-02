@@ -16,6 +16,9 @@ public class LowNetRetentionRule implements AmlRule {
             throw new IllegalArgumentException("Missing parameter: MAX_RETENTION_PCT");
         }
 
-        return "(total_credits > 0 AND (((total_credits - LEAST(total_debits, total_credits) / total_credits) * 100.0 <= :" + getRuleCode() + "_MAX_RETENTION_PCT))";
+        return String.format(
+                "(total_credits > 0 AND ((total_credits - LEAST(total_debits, total_credits)) * 100.0 / total_credits) <= :%s_MAX_RETENTION_PCT)",
+                getRuleCode()
+        );
     }
 }

@@ -5,6 +5,5 @@ public enum AlertStatus {
     IN_CASE,
     REVIEWED,
     ESCALATED,
-    CLOSED,
-    CLOSED_FALSE_POSITIVE
+    CLOSED
 }

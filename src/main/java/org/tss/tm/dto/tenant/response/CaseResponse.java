@@ -17,6 +17,8 @@ public class CaseResponse {
     private String caseCode;
     private String createdByEmail;
     private String assignedToUserCode;
+    private String assignedToEmail;
+
     private CaseStatus status;
     private String notes;
     private LocalDateTime createdAt;

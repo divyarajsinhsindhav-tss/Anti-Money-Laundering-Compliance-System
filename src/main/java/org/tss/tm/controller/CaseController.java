@@ -100,8 +100,9 @@ public class CaseController {
                                 caseDetail));
         }
 
-        @PostMapping("/{caseCode}/status")
-        @PreAuthorize("hasRole('COMPLIANCE_OFFICER')")
+        @PatchMapping("/{caseCode}/status")
+        @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
+
         public ResponseEntity<ApiResponse<CaseDetailResponse>> updateCaseStatus(
                 @AuthenticationPrincipal UserDetails userDetails,
                 @PathVariable String caseCode,

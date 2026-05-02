@@ -17,4 +17,7 @@ public interface ScenarioParamRepo extends JpaRepository<ScenarioParam, UUID> {
 
     @Query("SELECT p FROM ScenarioParam p WHERE p.scenario.scenarioId = :scenarioId AND p.rule IS NULL AND p.paramKey = :paramKey AND p.validTo IS NULL")
     ScenarioParam findCommonScenarioParam(@Param("scenarioId") UUID scenarioId, @Param("paramKey") String paramKey);
+
+    @Query("SELECT p FROM ScenarioParam p LEFT JOIN FETCH p.rule LEFT JOIN FETCH p.scenario WHERE p.validTo IS NULL")
+    List<ScenarioParam> findAllActiveParameters();
 }

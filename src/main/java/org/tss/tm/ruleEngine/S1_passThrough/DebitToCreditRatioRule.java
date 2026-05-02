@@ -22,7 +22,7 @@ public class DebitToCreditRatioRule implements AmlRule {
                     total_credits > 0
                     AND
                     (
-                        (total_debits / total_credits) * 100.0
+                        (total_debits * 100.0 / total_credits)
                     ) >= :%s_MIN_DEBIT_CREDIT_RATIO_PCT
                 )
                 """.formatted(getRuleCode());

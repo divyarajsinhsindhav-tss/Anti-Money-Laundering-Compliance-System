@@ -28,71 +28,70 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/v1/alerts")
 public class AlertController {
 
-    private final AlertService alertService;
+        private final AlertService alertService;
 
-    @GetMapping
-    @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
-    public ResponseEntity<ApiResponse<PagedResponse<AlertResponse>>> getAllAlerts(
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestParam(required = false) String alertCode,
-            @RequestParam(required = false) AlertStatus status,
-            @PageableDefault(size = 10) Pageable pageable,
-            HttpServletRequest httpServletRequest
-    ) {
-        log.info("Received request to fetch all alerts with alertCode: {} and status: {} by user: {}", alertCode, status, userDetails.getUsername());
-        Page<AlertResponse> alerts = alertService.getAllAlerts(userDetails.getUsername(), alertCode, status, pageable);
+        @GetMapping
+        @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
+        public ResponseEntity<ApiResponse<PagedResponse<AlertResponse>>> getAllAlerts(
+                        @AuthenticationPrincipal UserDetails userDetails,
+                        @RequestParam(required = false) String alertCode,
+                        @RequestParam(required = false) AlertStatus status,
+                        @PageableDefault(size = 10) Pageable pageable,
+                        HttpServletRequest httpServletRequest) {
+                log.info("Received request to fetch all alerts with alertCode: {} and status: {} by user: {}",
+                                alertCode, status, userDetails.getUsername());
+                Page<AlertResponse> alerts = alertService.getAllAlerts(userDetails.getUsername(), alertCode, status,
+                                pageable);
 
-        PagedResponse<AlertResponse> pagedResponse = PagedResponse.of(
-                alerts.getContent(),
-                alerts.getNumber(),
-                alerts.getSize(),
-                alerts.getTotalElements(),
-                pageable.getSort().toString(),
-                pageable.getSort().isSorted() ? pageable.getSort().iterator().next().getDirection().name() : "ASC");
+                PagedResponse<AlertResponse> pagedResponse = PagedResponse.of(
+                                alerts.getContent(),
+                                alerts.getNumber(),
+                                alerts.getSize(),
+                                alerts.getTotalElements(),
+                                pageable.getSort().toString(),
+                                pageable.getSort().isSorted()
+                                                ? pageable.getSort().iterator().next().getDirection().name()
+                                                : "ASC");
 
-        return ResponseEntity.ok(ApiResponse.of(
-                HttpStatus.OK,
-                "Alerts fetched successfully",
-                httpServletRequest.getRequestURI(),
-                pagedResponse
-        ));
-    }
+                return ResponseEntity.ok(ApiResponse.of(
+                                HttpStatus.OK,
+                                "Alerts fetched successfully",
+                                httpServletRequest.getRequestURI(),
+                                pagedResponse));
+        }
 
-    @PatchMapping("/{alertCode}/status")
-    @PreAuthorize("hasRole('BANK_ADMIN')")
-    public ResponseEntity<ApiResponse<AlertResponse>> updateAlertStatus(
-            @PathVariable String alertCode,
-            @Valid @RequestBody UpdateAlertStatusRequest request,
-            @AuthenticationPrincipal UserDetails userDetails,
-            HttpServletRequest httpServletRequest
-    ) {
-        log.info("Received request to update alert status for alert: {} to {} by user: {}", alertCode,
-                request.getStatus(), userDetails.getUsername());
-        AlertResponse response = alertService.updateAlertStatus(alertCode, request.getStatus(), request.getReason(),
-                userDetails.getUsername());
+        @PatchMapping("/{alertCode}/status")
+        @PreAuthorize("hasRole('COMPLIANCE_OFFICER')")
+        public ResponseEntity<ApiResponse<AlertResponse>> updateAlertStatus(
+                        @PathVariable String alertCode,
+                        @Valid @RequestBody UpdateAlertStatusRequest request,
+                        @AuthenticationPrincipal UserDetails userDetails,
+                        HttpServletRequest httpServletRequest) {
+                log.info("Received request to update alert status for alert: {} to {} by user: {}", alertCode,
+                                request.getStatus(), userDetails.getUsername());
+                AlertResponse response = alertService.updateAlertStatus(alertCode, request.getStatus(),
+                                request.getReason(),
+                                userDetails.getUsername());
 
-        return ResponseEntity.ok(ApiResponse.of(
-                HttpStatus.OK,
-                "Alert status updated successfully",
-                httpServletRequest.getRequestURI(),
-                response
-        ));
-    }
+                return ResponseEntity.ok(ApiResponse.of(
+                                HttpStatus.OK,
+                                "Alert status updated successfully",
+                                httpServletRequest.getRequestURI(),
+                                response));
+        }
 
-    @GetMapping("/{alertCode}")
-    @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
-    public ResponseEntity<ApiResponse<AlertDetailResponse>> getAlert(
-            @AuthenticationPrincipal UserDetails userDetail,
-            @PathVariable String alertCode,
-            HttpServletRequest httpServletRequest
-    ) {
-        AlertDetailResponse response = alertService.getAlert(userDetail.getUsername(), alertCode);
+        @GetMapping("/{alertCode}")
+        @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
+        public ResponseEntity<ApiResponse<AlertDetailResponse>> getAlert(
+                        @AuthenticationPrincipal UserDetails userDetail,
+                        @PathVariable String alertCode,
+                        HttpServletRequest httpServletRequest) {
+                AlertDetailResponse response = alertService.getAlert(userDetail.getUsername(), alertCode);
 
-        return ResponseEntity.ok(ApiResponse.of(
-                HttpStatus.OK,
-                "Alert details fetched successfully",
-                httpServletRequest.getRequestURI(),
-                response
-        ));
-    }
+                return ResponseEntity.ok(ApiResponse.of(
+                                HttpStatus.OK,
+                                "Alert details fetched successfully",
+                                httpServletRequest.getRequestURI(),
+                                response));
+        }
 }

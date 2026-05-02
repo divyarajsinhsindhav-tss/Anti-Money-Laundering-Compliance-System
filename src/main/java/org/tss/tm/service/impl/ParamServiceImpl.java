@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.tss.tm.dto.tenant.request.ScenarioParamUploadRequest;
+import org.tss.tm.dto.tenant.response.ScenarioParamResponse;
 import org.tss.tm.entity.system.Rule;
 import org.tss.tm.entity.system.Scenario;
 import org.tss.tm.entity.system.ScenarioParameterMaster;
@@ -24,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -100,7 +102,8 @@ public class ParamServiceImpl implements ParamService {
                         default -> throw new IllegalArgumentException("Invalid Data type");
                     }
                 } catch (Exception e) {
-                    log.error("Error parsing default value for parameter {}: {}", master.getParameterKey(), e.getMessage());
+                    log.error("Error parsing default value for parameter {}: {}", master.getParameterKey(),
+                            e.getMessage());
                     tenantParam.setStringValue(master.getDefaultValue());
                 }
             }
@@ -109,22 +112,28 @@ public class ParamServiceImpl implements ParamService {
     }
 
     @Override
-    public void updateScenarioParams(ScenarioParamUploadRequest request){
-        ScenarioParam newParam=convertToEntity(request);
+    public void updateScenarioParams(ScenarioParamUploadRequest request) {
+        ScenarioParam newParam = convertToEntity(request);
         ScenarioParam oldParam;
-        if(newParam.getRule()==null){
-            oldParam=scenarioParamRepo.findCommonScenarioParam(newParam.getScenario().getScenarioId(), newParam.getParamKey());
-        }else{
-            oldParam=scenarioParamRepo.findScenarioRuleParam(newParam.getScenario().getScenarioId(), newParam.getRule().getRuleId(),newParam.getParamKey());
+        if (newParam.getRule() == null) {
+            oldParam = scenarioParamRepo.findCommonScenarioParam(newParam.getScenario().getScenarioId(),
+                    newParam.getParamKey());
+        } else {
+            oldParam = scenarioParamRepo.findScenarioRuleParam(newParam.getScenario().getScenarioId(),
+                    newParam.getRule().getRuleId(), newParam.getParamKey());
         }
-        oldParam.setValidTo(LocalDateTime.now());
-        scenarioParamRepo.save(oldParam);
+
+        if (oldParam != null) {
+            oldParam.setValidTo(LocalDateTime.now());
+            scenarioParamRepo.save(oldParam);
+        }
+        
         scenarioParamRepo.save(newParam);
     }
 
     @Override
     public ScenarioParam convertToEntity(ScenarioParamUploadRequest request) {
-        if(request==null){
+        if (request == null) {
             throw new IllegalArgumentException("Empty request found");
         }
         if (request.getParamKey() == null || request.getParamKey().isEmpty()) {
@@ -142,7 +151,8 @@ public class ParamServiceImpl implements ParamService {
             throw new IllegalArgumentException("Missing Data Type");
         }
 
-        Scenario scenario = scenarioRepo.findScenarioByScenarioCode(request.getRuleCode()).orElseThrow(() -> new ResourceNotFoundException("Scenario Not Found", new Scenario()));
+        Scenario scenario = scenarioRepo.findScenarioByScenarioCode(request.getScenarioCode())
+                .orElseThrow(() -> new ResourceNotFoundException("Scenario Not Found", new Scenario()));
 
         ScenarioParam param = ScenarioParam.builder()
                 .scenario(scenario)
@@ -153,7 +163,8 @@ public class ParamServiceImpl implements ParamService {
         Rule rule;
 
         if (request.getRuleCode() != null) {
-            rule = ruleRepo.findByRuleCode(request.getRuleCode()).orElseThrow(() -> new ResourceNotFoundException("Rule Not Found", new Rule()));
+            rule = ruleRepo.findByRuleCode(request.getRuleCode())
+                    .orElseThrow(() -> new ResourceNotFoundException("Rule Not Found", new Rule()));
             param.setRule(rule);
         }
         param.setValidFrom(LocalDateTime.now());
@@ -180,4 +191,27 @@ public class ParamServiceImpl implements ParamService {
         return param;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<ScenarioParamResponse> getAllScenarioParams() {
+        return scenarioParamRepo.findAllActiveParameters().stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    private ScenarioParamResponse toResponse(ScenarioParam param) {
+        String value = switch (param.getDataType()) {
+            case INT -> String.valueOf(param.getIntValue());
+            case DECIMAL -> param.getDecimalValue() != null ? param.getDecimalValue().toString() : null;
+            default -> param.getStringValue();
+        };
+
+        return ScenarioParamResponse.builder()
+                .scenarioCode(param.getScenario().getScenarioCode())
+                .ruleCode(param.getRule() != null ? param.getRule().getRuleCode() : null)
+                .paramKey(param.getParamKey())
+                .dataType(param.getDataType())
+                .value(value)
+                .build();
+    }
 }

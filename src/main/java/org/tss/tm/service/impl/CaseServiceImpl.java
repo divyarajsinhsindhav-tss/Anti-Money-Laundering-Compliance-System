@@ -202,7 +202,8 @@ public class CaseServiceImpl implements CaseService {
                 .orElseThrow(() -> new ResourceNotFoundException("Case", caseCode));
 
         if (amlCase.getStatus() != OPEN && amlCase.getStatus() != CaseStatus.UNDER_REVIEW) {
-            throw new BusinessRuleException("Cases can only be assigned or reassigned when in OPEN or UNDER_REVIEW status", "INVALID_STATUS");
+            throw new BusinessRuleException(
+                    "Cases can only be assigned or reassigned when in OPEN or UNDER_REVIEW status", "INVALID_STATUS");
         }
 
         TenantUser assignedTo = tenantUserRepo.findByUserCode(assignedToUserCode)
@@ -223,7 +224,6 @@ public class CaseServiceImpl implements CaseService {
     @Transactional
     public CaseDetailResponse updateCaseStatus(String caseCode, UpdateCaseStatusRequest request, String email) {
         log.info("Updating status for case {} to {} by {}", caseCode, request.getCaseStatus(), email);
-
 
         AmlCase amlCase = caseRepo.findByCaseCode(caseCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Case", caseCode));
@@ -247,35 +247,41 @@ public class CaseServiceImpl implements CaseService {
         if (!amlCase.getAssignedTo().getEmail().equals(email)) {
             throw new BusinessRuleException("You do not have permission to update this case", "ACCESS_DENIED");
         }
-        if (request.getCaseStatus() == null || request.getCaseStatus() == OPEN || request.getCaseStatus() == UNDER_REVIEW) {
+        if (request.getCaseStatus() == null || request.getCaseStatus() == OPEN
+                || request.getCaseStatus() == UNDER_REVIEW) {
             throw new BusinessRuleException("Invalid status type");
         }
 
         int closeCount = 0;
         for (Alert alert : caseAlerts) {
+            if (alert.getAlertStatus() == AlertStatus.CLOSED)
+                closeCount++;
 
             if (request.getCaseStatus() == ESCALATED) {
                 if (alert.getAlertStatus() != AlertStatus.CLOSED && alert.getAlertStatus() != AlertStatus.REVIEWED) {
-                    throw new BusinessRuleException("Case is not yet ready to close");
+                    throw new BusinessRuleException(
+                            "Case is not yet ready to escalate. All alerts must be either REVIEWED or CLOSED.");
                 }
-                alert.setAlertStatus(AlertStatus.ESCALATED);
+                if (alert.getAlertStatus() == AlertStatus.REVIEWED) {
+                    alert.setAlertStatus(AlertStatus.ESCALATED);
+                }
             }
             if (request.getCaseStatus() == CLOSED && alert.getAlertStatus() != AlertStatus.CLOSED) {
                 throw new BusinessRuleException("Close all alerts before closing the case");
             }
-            if (alert.getAlertStatus() == AlertStatus.CLOSED) closeCount++;
         }
 
         if (request.getCaseStatus() == ESCALATED) {
             if (closeCount == caseAlerts.size()) {
-                throw new BusinessRuleException("All alerts are closed.");
+                throw new BusinessRuleException("All alerts are closed. Escalation is not possible.");
             }
             alertRepo.saveAll(caseAlerts);
         }
 
         if (request.getReason() != null && !request.getReason().isEmpty()) {
             String currentNotes = amlCase.getNotes() != null ? amlCase.getNotes() : "";
-            amlCase.setNotes(currentNotes + "\n\nStatus changed to " + request.getCaseStatus() + ". Reason: " + request.getReason());
+            amlCase.setNotes(currentNotes + "\n\nStatus changed to " + request.getCaseStatus() + ". Reason: "
+                    + request.getReason());
         }
 
         amlCase.setStatus(request.getCaseStatus());
