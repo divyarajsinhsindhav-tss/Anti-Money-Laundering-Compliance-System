@@ -21,4 +21,14 @@ public interface AlertInfoRepo extends JpaRepository<AlertInfo, UUID> {
            "LEFT JOIN FETCH t.account " +
            "WHERE ai.alert.alertCode = :alertCode")
     List<AlertInfo> findAllByAlert_AlertCode(@Param("alertCode") String alertCode);
+
+    @Query("""
+    SELECT ai FROM AlertInfo ai
+    LEFT JOIN FETCH ai.transaction t
+    LEFT JOIN FETCH t.account
+    LEFT JOIN FETCH ai.rule r
+    WHERE ai.alert.alertCode = :alertCode
+    ORDER BY t.txnTimestamp DESC
+""")
+    List<AlertInfo> findDetailedByAlertCode(@Param("alertCode") String alertCode);
 }

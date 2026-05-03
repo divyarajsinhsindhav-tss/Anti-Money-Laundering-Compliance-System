@@ -15,13 +15,16 @@ import org.tss.tm.common.response.PagedResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.tss.tm.common.enums.CaseStatus;
+import org.tss.tm.dto.tenant.reporting.CasePdfReportDto;
 import org.tss.tm.dto.tenant.request.CreateCaseRequest;
 import org.tss.tm.dto.tenant.request.UpdateCaseStatusRequest;
 import org.tss.tm.dto.tenant.response.CaseResponse;
 import org.tss.tm.dto.tenant.response.CreateCaseResponse;
 import org.tss.tm.dto.tenant.response.CaseDetailResponse;
 import org.tss.tm.entity.tenant.AmlCase;
+import org.tss.tm.service.interfaces.CaseReportService;
 import org.tss.tm.service.interfaces.CaseService;
+import org.tss.tm.service.interfaces.PdfGeneratorService;
 
 import java.util.List;
 
@@ -31,107 +34,109 @@ import java.util.List;
 @RequestMapping("/api/v1/cases")
 public class CaseController {
 
-        private final CaseService caseService;
+    private final CaseService caseService;
+    private final CaseReportService caseReportService;
+    private final PdfGeneratorService pdfGeneratorService;
 
-        @PostMapping
-        @PreAuthorize("hasRole('BANK_ADMIN')")
-        public ResponseEntity<ApiResponse<CreateCaseResponse>> createCase(
-                        @Valid @RequestBody CreateCaseRequest request,
-                        @AuthenticationPrincipal UserDetails userDetails,
-                        HttpServletRequest httpServletRequest) {
-                log.info("Received request to create case from user: {}", userDetails.getUsername());
-                AmlCase amlCase = caseService.createCase(request, userDetails.getUsername());
-                return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.of(
-                                HttpStatus.CREATED,
-                                "Case created successfully with code: " + amlCase.getCaseCode(),
-                                httpServletRequest.getRequestURI(),
-                                CreateCaseResponse.builder()
-                                                .caseCode(amlCase.getCaseCode())
-                                                .build()));
-        }
+    @PostMapping
+    @PreAuthorize("hasRole('BANK_ADMIN')")
+    public ResponseEntity<ApiResponse<CreateCaseResponse>> createCase(
+            @Valid @RequestBody CreateCaseRequest request,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest httpServletRequest) {
+        log.info("Received request to create case from user: {}", userDetails.getUsername());
+        AmlCase amlCase = caseService.createCase(request, userDetails.getUsername());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.of(
+                HttpStatus.CREATED,
+                "Case created successfully with code: " + amlCase.getCaseCode(),
+                httpServletRequest.getRequestURI(),
+                CreateCaseResponse.builder()
+                        .caseCode(amlCase.getCaseCode())
+                        .build()));
+    }
 
-        @GetMapping
-        @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
-        public ResponseEntity<ApiResponse<PagedResponse<CaseResponse>>> getAllCases(
-                        @AuthenticationPrincipal UserDetails userDetails,
-                        @RequestParam(required = false) CaseStatus status,
-                        Pageable pageable,
-                        HttpServletRequest httpServletRequest) {
-                log.info("Received request to get all cases with status: {} from user: {}", status,
-                                userDetails.getUsername());
+    @GetMapping
+    @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
+    public ResponseEntity<ApiResponse<PagedResponse<CaseResponse>>> getAllCases(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam(required = false) CaseStatus status,
+            Pageable pageable,
+            HttpServletRequest httpServletRequest) {
+        log.info("Received request to get all cases with status: {} from user: {}", status,
+                userDetails.getUsername());
 
-                boolean isAdmin = userDetails.getAuthorities().stream()
-                                .anyMatch(a -> a.getAuthority().equals("ROLE_BANK_ADMIN"));
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_BANK_ADMIN"));
 
-                Page<CaseResponse> cases = caseService.getAllCases(status, userDetails.getUsername(), isAdmin,
-                                pageable);
+        Page<CaseResponse> cases = caseService.getAllCases(status, userDetails.getUsername(), isAdmin,
+                pageable);
 
-                return ResponseEntity.ok(ApiResponse.of(
-                                HttpStatus.OK,
-                                "Cases retrieved successfully",
-                                httpServletRequest.getRequestURI(),
-                                PagedResponse.of(cases.getContent(), cases.getNumber(), cases.getSize(),
-                                                cases.getTotalElements(),
-                                                cases.getSort().toString(),
-                                                cases.getSort().isSorted()
-                                                                ? cases.getSort().iterator().next().getDirection()
-                                                                                .name()
-                                                                : "ASC")));
-        }
+        return ResponseEntity.ok(ApiResponse.of(
+                HttpStatus.OK,
+                "Cases retrieved successfully",
+                httpServletRequest.getRequestURI(),
+                PagedResponse.of(cases.getContent(), cases.getNumber(), cases.getSize(),
+                        cases.getTotalElements(),
+                        cases.getSort().toString(),
+                        cases.getSort().isSorted()
+                                ? cases.getSort().iterator().next().getDirection()
+                                .name()
+                                : "ASC")));
+    }
 
-        @GetMapping("/{caseCode}")
-        @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
-        public ResponseEntity<ApiResponse<CaseDetailResponse>> getCase(
-                        @AuthenticationPrincipal UserDetails userDetails,
-                        @PathVariable String caseCode,
-                        HttpServletRequest httpServletRequest) {
-                log.info("Received request to get case details for case code: {} from user: {}", caseCode,
-                                userDetails.getUsername());
+    @GetMapping("/{caseCode}")
+    @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
+    public ResponseEntity<ApiResponse<CaseDetailResponse>> getCase(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String caseCode,
+            HttpServletRequest httpServletRequest) {
+        log.info("Received request to get case details for case code: {} from user: {}", caseCode,
+                userDetails.getUsername());
 
-                boolean isAdmin = userDetails.getAuthorities().stream()
-                                .anyMatch(a -> a.getAuthority().equals("ROLE_BANK_ADMIN"));
+        boolean isAdmin = userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_BANK_ADMIN"));
 
-                CaseDetailResponse caseDetail = caseService.getCase(caseCode, userDetails.getUsername(), isAdmin);
+        CaseDetailResponse caseDetail = caseService.getCase(caseCode, userDetails.getUsername(), isAdmin);
 
-                return ResponseEntity.ok(ApiResponse.of(
-                                HttpStatus.OK,
-                                "Case details retrieved successfully",
-                                httpServletRequest.getRequestURI(),
-                                caseDetail));
-        }
+        return ResponseEntity.ok(ApiResponse.of(
+                HttpStatus.OK,
+                "Case details retrieved successfully",
+                httpServletRequest.getRequestURI(),
+                caseDetail));
+    }
 
-        @PatchMapping("/{caseCode}/status")
-        @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
+    @PatchMapping("/{caseCode}/status")
+    @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
 
-        public ResponseEntity<ApiResponse<CaseDetailResponse>> updateCaseStatus(
-                @AuthenticationPrincipal UserDetails userDetails,
-                @PathVariable String caseCode,
-                @Valid @RequestBody UpdateCaseStatusRequest request,
-                HttpServletRequest httpServletRequest
-        ) {
-            log.info("Received request to update case status for case code: {} by {}", caseCode,  userDetails.getUsername());
-            CaseDetailResponse caseDetail = caseService.updateCaseStatus(caseCode, request, userDetails.getUsername());
-            return ResponseEntity.ok(ApiResponse.of(
-                    HttpStatus.OK,
-                    "Case status updated successfully",
-                    httpServletRequest.getRequestURI(),
-                    caseDetail
-            ));
-        }
+    public ResponseEntity<ApiResponse<CaseDetailResponse>> updateCaseStatus(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable String caseCode,
+            @Valid @RequestBody UpdateCaseStatusRequest request,
+            HttpServletRequest httpServletRequest
+    ) {
+        log.info("Received request to update case status for case code: {} by {}", caseCode, userDetails.getUsername());
+        CaseDetailResponse caseDetail = caseService.updateCaseStatus(caseCode, request, userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.of(
+                HttpStatus.OK,
+                "Case status updated successfully",
+                httpServletRequest.getRequestURI(),
+                caseDetail
+        ));
+    }
 
-        @PostMapping("/auto-generate")
-        @PreAuthorize("hasRole('BANK_ADMIN')")
-        public ResponseEntity<ApiResponse<List<CaseResponse>>> autoGenerateCases(
-                        @AuthenticationPrincipal UserDetails userDetails,
-                        HttpServletRequest httpServletRequest) {
-                log.info("Received request to auto-generate cases from user: {}", userDetails.getUsername());
-                List<CaseResponse> cases = caseService.autoGenerateCases(userDetails.getUsername());
-                return ResponseEntity.ok(ApiResponse.of(
-                                HttpStatus.OK,
-                                "Auto-generated " + cases.size() + " cases successfully",
-                                httpServletRequest.getRequestURI(),
-                                cases));
-        }
+    @PostMapping("/auto-generate")
+    @PreAuthorize("hasRole('BANK_ADMIN')")
+    public ResponseEntity<ApiResponse<List<CaseResponse>>> autoGenerateCases(
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest httpServletRequest) {
+        log.info("Received request to auto-generate cases from user: {}", userDetails.getUsername());
+        List<CaseResponse> cases = caseService.autoGenerateCases(userDetails.getUsername());
+        return ResponseEntity.ok(ApiResponse.of(
+                HttpStatus.OK,
+                "Auto-generated " + cases.size() + " cases successfully",
+                httpServletRequest.getRequestURI(),
+                cases));
+    }
 
     @PatchMapping("/{caseCode}/assign")
     @PreAuthorize("hasRole('BANK_ADMIN')")
@@ -149,4 +154,35 @@ public class CaseController {
                 caseResponse
         ));
     }
+
+    @GetMapping("/{caseCode}/download-pdf")
+    @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
+    public ResponseEntity<byte[]> downloadCasePdf(
+            @PathVariable String caseCode,
+            @AuthenticationPrincipal UserDetails userDetails,
+            HttpServletRequest httpServletRequest
+    ) {
+
+        log.info("PDF download request START for case: {} by user: {}",
+                caseCode, userDetails.getUsername());
+
+        CasePdfReportDto reportDto =
+                caseReportService.buildCaseReport(caseCode);
+
+        byte[] pdfBytes = pdfGeneratorService.generateCasePdf(reportDto);
+
+        String fileName = "AML_CASE_" + caseCode + ".pdf";
+
+        log.info("PDF download request END for case: {} by user: {}",
+                caseCode, userDetails.getUsername());
+
+        return ResponseEntity.ok()
+                .header("Content-Type", "application/pdf")
+                .header("Content-Disposition", "attachment; filename=\"" + fileName + "\"")
+                .header("Cache-Control", "no-cache, no-store, must-revalidate")
+                .header("Pragma", "no-cache")
+                .header("Expires", "0")
+                .body(pdfBytes);
+    }
+
 }

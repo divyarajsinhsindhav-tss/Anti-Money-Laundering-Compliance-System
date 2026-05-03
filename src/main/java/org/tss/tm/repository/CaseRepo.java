@@ -21,4 +21,13 @@ public interface CaseRepo extends JpaRepository<AmlCase, UUID> {
     Optional<AmlCase> findByCaseCode(String caseCode);
 
     long countByAssignedTo_UserCode(String userCode);
+
+    @EntityGraph(attributePaths = {
+            "createdBy",
+            "assignedTo",
+            "alerts",
+            "alerts.customer",
+            "alerts.scenario"
+    })
+    Optional<AmlCase> findDetailedByCaseCode(String caseCode);
 }
