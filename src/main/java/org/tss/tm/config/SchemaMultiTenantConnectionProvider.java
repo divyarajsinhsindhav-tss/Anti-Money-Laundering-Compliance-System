@@ -1,6 +1,7 @@
 package org.tss.tm.config;
 
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.cfg.AvailableSettings;
 import org.hibernate.engine.jdbc.connections.spi.MultiTenantConnectionProvider;
 import org.springframework.boot.hibernate.autoconfigure.HibernatePropertiesCustomizer;
 import org.springframework.stereotype.Component;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Component;
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Map;
 
 @Component
@@ -42,8 +44,7 @@ public class SchemaMultiTenantConnectionProvider implements MultiTenantConnectio
         log.debug("Switching to schema: {}", tenantIdentifier);
         final Connection connection = getAnyConnection();
 
-        // THE FIX: Set search path to look at Tenant FIRST, and Public SECOND.
-        try (java.sql.Statement stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             stmt.execute("SET search_path TO \"" + tenantIdentifier + "\", public");
         }
 
@@ -61,7 +62,7 @@ public class SchemaMultiTenantConnectionProvider implements MultiTenantConnectio
     public void releaseConnection(Object tenantIdentifier, Connection connection) throws SQLException {
         log.debug("Releasing connection for schema: {}. Resetting to public.", tenantIdentifier);
 
-        try (java.sql.Statement stmt = connection.createStatement()) {
+        try (Statement stmt = connection.createStatement()) {
             stmt.execute("SET search_path TO public");
         }
 
@@ -85,6 +86,6 @@ public class SchemaMultiTenantConnectionProvider implements MultiTenantConnectio
 
     @Override
     public void customize(Map<String, Object> hibernateProperties) {
-        hibernateProperties.put(org.hibernate.cfg.AvailableSettings.MULTI_TENANT_CONNECTION_PROVIDER, this);
+        hibernateProperties.put(AvailableSettings.MULTI_TENANT_CONNECTION_PROVIDER, this);
     }
 }

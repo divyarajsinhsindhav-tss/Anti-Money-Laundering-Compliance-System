@@ -1,5 +1,6 @@
 package org.tss.tm.mapper;
 
+import org.mapstruct.IterableMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
@@ -29,9 +30,9 @@ public interface ScenarioMapper {
 
     ScenarioDetailResponse.RuleInfo toRuleInfo(Rule rule);
 
-    @org.mapstruct.IterableMapping(qualifiedByName = "adminResponse")
+    @IterableMapping(qualifiedByName = "adminResponse")
     List<ScenarioResponse> toResponseList(List<Scenario> scenarios);
 
-    @org.mapstruct.IterableMapping(qualifiedByName = "tenantResponse")
+    @IterableMapping(qualifiedByName = "tenantResponse")
     List<org.tss.tm.dto.tenant.response.ScenarioResponse> toTenantResponseList(List<Scenario> scenarios);
 }

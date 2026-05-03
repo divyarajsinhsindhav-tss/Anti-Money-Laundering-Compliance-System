@@ -6,6 +6,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.tss.tm.common.constant.TenantConstants;
 import org.tss.tm.entity.system.SystemAdmin;
 import org.tss.tm.entity.tenant.TenantUser;
@@ -14,6 +15,7 @@ import org.tss.tm.repository.TenantUserRepo;
 import org.tss.tm.tenant.TenantContext;
 import org.tss.tm.repository.TenantRepo;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -25,7 +27,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final TenantRepo tenantRepo;
 
     @Override
-    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         String tenant = TenantContext.getCurrentTenant();
 
@@ -56,8 +58,8 @@ public class CustomUserDetailsService implements UserDetailsService {
                 isAccountNonLocked(tenantUser.getLockedUntil()));
     }
 
-    private boolean isAccountNonLocked(java.time.LocalDateTime lockedUntil) {
-        return lockedUntil == null || lockedUntil.isBefore(java.time.LocalDateTime.now());
+    private boolean isAccountNonLocked(LocalDateTime lockedUntil) {
+        return lockedUntil == null || lockedUntil.isBefore(LocalDateTime.now());
     }
 
 }
