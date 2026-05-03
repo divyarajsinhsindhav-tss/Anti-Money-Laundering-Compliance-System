@@ -4,31 +4,26 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.tss.tm.common.response.ApiResponse;
 import org.tss.tm.common.response.PagedResponse;
-import org.tss.tm.dto.tenant.response.ScenarioResponse;
+import org.tss.tm.dto.tenant.response.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.tss.tm.dto.tenant.request.TenantRegistrationRequest;
-import org.tss.tm.dto.tenant.response.TenantAvailableResponse;
-import org.tss.tm.dto.tenant.response.FileErrorResponse;
-import org.tss.tm.dto.tenant.response.TenantDetailResponse;
-import org.tss.tm.dto.tenant.response.TenantResponse;
-import org.tss.tm.dto.tenant.response.TenantUserResponse;
 import org.tss.tm.service.interfaces.TenantService;
-import org.tss.tm.dto.tenant.response.CustomerDashboardResponse;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 import java.sql.SQLException;
-
-import org.tss.tm.dto.tenant.response.TransactionDashboardResponse;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -127,6 +122,34 @@ public class TenantController {
                                 "Rule engine stats fetched successfully",
                                 httpServletRequest.getRequestURI(),
                                 stats
+                ));
+        }
+
+        @GetMapping("/rule-engine-jobs")
+        @PreAuthorize("hasAnyRole('BANK_ADMIN')")
+        public ResponseEntity<ApiResponse<PagedResponse<RuleJobResponse.RecentJobResponse>>> getRuleEngineJobs(
+                        @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+                        HttpServletRequest httpServletRequest
+        ) {
+                log.info("Received request to fetch recent rule engine jobs");
+                Page<RuleJobResponse.RecentJobResponse> response = tenantService.getRuleEngineJobs(pageable);
+                
+                PagedResponse<RuleJobResponse.RecentJobResponse> pagedResponse = PagedResponse.of(
+                        response.getContent(),
+                        response.getNumber(),
+                        response.getSize(),
+                        response.getTotalElements(),
+                        pageable.getSort().toString(),
+                        pageable.getSort().isSorted() 
+                            ? pageable.getSort().iterator().next().getDirection().name() 
+                            : "DESC"
+                );
+
+                return ResponseEntity.ok(ApiResponse.of(
+                                HttpStatus.OK,
+                                "Rule engine jobs fetched successfully",
+                                httpServletRequest.getRequestURI(),
+                                pagedResponse
                 ));
         }
 
@@ -254,4 +277,100 @@ public class TenantController {
                 ));
         }
 
+        @GetMapping("/customers")
+        @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
+        public ResponseEntity<ApiResponse<PagedResponse<CustomerListResponse>>> getAllCustomers(
+                        @RequestParam(required = false) String search,
+                        @PageableDefault(size = 20) Pageable pageable,
+                        HttpServletRequest httpServletRequest
+        ) {
+                log.info("Received request to fetch all customers with search: {}", search);
+                Page<CustomerListResponse> response = tenantService.getAllCustomers(search, pageable);
+                return ResponseEntity.ok(ApiResponse.of(
+                                HttpStatus.OK,
+                                "Customers fetched successfully",
+                                httpServletRequest.getRequestURI(),
+                                PagedResponse.of(
+                                                response.getContent(),
+                                                response.getNumber(),
+                                                response.getSize(),
+                                                response.getTotalElements(),
+                                                pageable.getSort().toString(),
+                                                pageable.getSort().isSorted() ? pageable.getSort().iterator().next().getDirection().name() : "ASC"
+                                )
+                ));
+        }
+
+        @GetMapping("/customers/{customerId}")
+        @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
+        public ResponseEntity<ApiResponse<CustomerDetailResponse>> getCustomerDetail(
+                        @PathVariable UUID customerId,
+                        HttpServletRequest httpServletRequest
+        ) {
+                log.info("Received request to fetch customer detail for ID: {}", customerId);
+                CustomerDetailResponse response = tenantService.getCustomerDetail(customerId);
+                return ResponseEntity.ok(ApiResponse.of(
+                                HttpStatus.OK,
+                                "Customer detail fetched successfully",
+                                httpServletRequest.getRequestURI(),
+                                response
+                ));
+        }
+
+        @GetMapping("/transactions")
+        @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
+        public ResponseEntity<ApiResponse<PagedResponse<TransactionListResponse>>> getAllTransactions(
+                        @RequestParam(required = false) String search,
+                        @RequestParam(required = false) LocalDateTime startDate,
+                        @RequestParam(required = false) LocalDateTime endDate,
+                        @PageableDefault(size = 20, sort = "txnTimestamp", direction = Sort.Direction.DESC) Pageable pageable,
+                        HttpServletRequest httpServletRequest
+        ) {
+                log.info("Received request to fetch all transactions with search: {}, range: {} to {}", search, startDate, endDate);
+                Page<TransactionListResponse> response = tenantService.getAllTransactions(search, startDate, endDate, pageable);
+                return ResponseEntity.ok(ApiResponse.of(
+                                HttpStatus.OK,
+                                "Transactions fetched successfully",
+                                httpServletRequest.getRequestURI(),
+                                PagedResponse.of(
+                                                response.getContent(),
+                                                response.getNumber(),
+                                                response.getSize(),
+                                                response.getTotalElements(),
+                                                pageable.getSort().toString(),
+                                                pageable.getSort().isSorted() ? pageable.getSort().iterator().next().getDirection().name() : "DESC"
+                                )
+                ));
+        }
+
+        @GetMapping("/transactions/{transactionId}")
+        @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
+        public ResponseEntity<ApiResponse<TransactionDetailResponse>> getTransactionDetail(
+                        @PathVariable UUID transactionId,
+                        HttpServletRequest httpServletRequest
+        ) {
+                log.info("Received request to fetch transaction detail for ID: {}", transactionId);
+                TransactionDetailResponse response = tenantService.getTransactionDetail(transactionId);
+                return ResponseEntity.ok(ApiResponse.of(
+                                HttpStatus.OK,
+                                "Transaction detail fetched successfully",
+                                httpServletRequest.getRequestURI(),
+                                response
+                ));
+        }
+
+        @GetMapping("/dashboard-stats")
+        @PreAuthorize("hasAnyRole('BANK_ADMIN', 'COMPLIANCE_OFFICER')")
+        public ResponseEntity<ApiResponse<TenantDashboardResponse>> getDashboardStats(
+                        HttpServletRequest httpServletRequest
+        ) {
+                log.info("Received request to fetch unified dashboard stats");
+                TenantDashboardResponse response = tenantService.getDashboardStats();
+                return ResponseEntity.ok(ApiResponse.of(
+                                HttpStatus.OK,
+                                "Dashboard stats fetched successfully",
+                                httpServletRequest.getRequestURI(),
+                                response
+                ));
+        }
 }

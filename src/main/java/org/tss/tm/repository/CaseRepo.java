@@ -30,4 +30,6 @@ public interface CaseRepo extends JpaRepository<AmlCase, UUID> {
             "alerts.scenario"
     })
     Optional<AmlCase> findDetailedByCaseCode(String caseCode);
+
+    long countByStatus(CaseStatus status);
 }

@@ -37,4 +37,6 @@ public interface AlertRepo extends JpaRepository<Alert, UUID> {
                                                                                                Pageable pageable);
 
     List<Alert> findAllByAmlCase_CaseCode(String caseCode);
+
+    long countByAlertStatus(AlertStatus status);
 }

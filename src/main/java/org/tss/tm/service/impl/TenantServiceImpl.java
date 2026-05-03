@@ -12,42 +12,46 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.tss.tm.common.constant.TenantConstants;
 import org.tss.tm.common.enums.JobType;
 import org.tss.tm.common.enums.UserRole;
+import org.tss.tm.common.enums.AlertStatus;
+import org.tss.tm.common.enums.CaseStatus;
 import org.tss.tm.dto.tenant.response.*;
+import org.tss.tm.dto.tenant.response.RuleJobResponse;
 import org.tss.tm.dto.tenant.request.TenantAdminRegistrationRequest;
 import org.tss.tm.dto.tenant.request.TenantRegistrationRequest;
 import org.tss.tm.entity.system.JobRecord;
 import org.tss.tm.entity.system.SystemAdmin;
 import org.tss.tm.entity.system.Tenant;
+import org.tss.tm.entity.tenant.Customer;
 import org.tss.tm.entity.tenant.CustomerError;
 import org.tss.tm.entity.tenant.TransactionError;
 import org.tss.tm.entity.tenant.TenantUser;
 import org.tss.tm.exception.BusinessRuleException;
 import org.tss.tm.exception.ResourceNotFoundException;
-import org.tss.tm.exception.TenantMismatchException;
+import org.tss.tm.mapper.AlertMapper;
+import org.tss.tm.mapper.CaseMapper;
 import org.tss.tm.mapper.ScenarioMapper;
 import org.tss.tm.mapper.TenantMapper;
 import org.tss.tm.mapper.UserMapper;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 import org.tss.tm.repository.*;
 import org.tss.tm.service.interfaces.EmailService;
 import org.tss.tm.service.interfaces.FlywayMigration;
 import org.tss.tm.service.interfaces.TenantService;
 import org.tss.tm.tenant.TenantContext;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import jakarta.persistence.Query;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.List;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static org.springframework.data.domain.Sort.Direction.DESC;
 
@@ -74,6 +78,11 @@ public class TenantServiceImpl implements TenantService {
     private final TransactionErrorRepo transactionErrorRepo;
     private final FinancialTransactionRepo financialTransactionRepo;
     private final JobRepo jobRepo;
+    private final AlertRepo alertRepo;
+    private final CaseRepo caseRepo;
+    private final AlertMapper alertMapper;
+    private final CaseMapper caseMapper;
+
 
     @Override
     public TenantResponse createTenant(TenantRegistrationRequest request, String email) {
@@ -443,5 +452,153 @@ public class TenantServiceImpl implements TenantService {
         stats.put("totalScenarios", totalScenarios);
         stats.put("totalRuns", totalRuns);
         return stats;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<RuleJobResponse.RecentJobResponse> getRuleEngineJobs(Pageable pageable) {
+        Tenant tenant = getCurrentTenant();
+        return jobRepo.findByTenantAndJobType(tenant, JobType.RULE_ENGINE, pageable)
+                .map(job -> RuleJobResponse.RecentJobResponse.builder()
+                        .id(job.getJobId().toString())
+                        .status(job.getStatus().name())
+                        .jobType(job.getJobType().name())
+                        .startTime(job.getStartedAt() != null ? job.getStartedAt()
+                                : job.getCreatedAt())
+                        .endTime(job.getCompletedAt())
+                        .build());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CustomerListResponse> getAllCustomers(String search, Pageable pageable) {
+        Page<org.tss.tm.entity.tenant.Customer> customers;
+        if (search != null && !search.isEmpty()) {
+            customers = customerRepo.searchCustomers(search, pageable);
+        } else {
+            customers = customerRepo.findAll(pageable);
+        }
+
+        return customers.map(c -> CustomerListResponse.builder()
+                .customerId(c.getCustomerId())
+                .cif(c.getCif())
+                .fullName(c.getFirstName() + " " + (c.getMiddleName() != null ? c.getMiddleName() + " " : "") + c.getLastName())
+                .dob(c.getDob())
+                .income(c.getIncome())
+                .build());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CustomerDetailResponse getCustomerDetail(java.util.UUID customerId) {
+        Customer customer = customerRepo.findById(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Customer", customerId.toString()));
+
+        return CustomerDetailResponse.builder()
+                .customerId(customer.getCustomerId())
+                .cif(customer.getCif())
+                .firstName(customer.getFirstName())
+                .middleName(customer.getMiddleName())
+                .lastName(customer.getLastName())
+                .dob(customer.getDob())
+                .income(customer.getIncome())
+                .accounts(customer.getAccounts().stream()
+                        .map(a -> CustomerDetailResponse.AccountResponse.builder()
+                                .accountNumber(a.getAccountNumber())
+                                .accountType(a.getAccountType())
+                                .openedAt(a.getOpenedAt())
+                                .build())
+                        .collect(Collectors.toList()))
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<TransactionListResponse> getAllTransactions(String search, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+        Page<org.tss.tm.entity.tenant.FinancialTransaction> transactions;
+        if ((search != null && !search.isEmpty()) || startDate != null || endDate != null) {
+            transactions = financialTransactionRepo.searchTransactions(search != null ? search : "", startDate, endDate, pageable);
+        } else {
+            transactions = financialTransactionRepo.findAll(pageable);
+        }
+
+        return transactions.map(t -> TransactionListResponse.builder()
+                .transactionId(t.getTransactionId())
+                .txnNo(t.getTxnNo())
+                .accountNumber(t.getAccount().getAccountNumber())
+                .customerName(t.getAccount().getCustomer().getFirstName() + " " + t.getAccount().getCustomer().getLastName())
+                .amount(t.getAmount())
+                .txnType(t.getTxnType())
+                .direction(t.getDirection())
+                .txnTimestamp(t.getTxnTimestamp())
+                .build());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TransactionDetailResponse getTransactionDetail(UUID transactionId) {
+        org.tss.tm.entity.tenant.FinancialTransaction t = financialTransactionRepo.findById(transactionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction", transactionId.toString()));
+
+        return TransactionDetailResponse.builder()
+                .transactionId(t.getTransactionId())
+                .txnNo(t.getTxnNo())
+                .amount(t.getAmount())
+                .txnType(t.getTxnType())
+                .direction(t.getDirection())
+                .counterpartyAccountNo(t.getCounterpartyAccountNo())
+                .counterpartyBankIfsc(t.getCounterpartyBankIfsc())
+                .txnTimestamp(t.getTxnTimestamp())
+                .countryCode(t.getCountryCode())
+                .account(TransactionDetailResponse.AccountInfo.builder()
+                        .accountId(t.getAccount().getAccountId())
+                        .accountNumber(t.getAccount().getAccountNumber())
+                        .accountType(t.getAccount().getAccountType())
+                        .build())
+                .customer(TransactionDetailResponse.CustomerInfo.builder()
+                        .customerId(t.getAccount().getCustomer().getCustomerId())
+                        .cif(t.getAccount().getCustomer().getCif())
+                        .fullName(t.getAccount().getCustomer().getFirstName() + " " + t.getAccount().getCustomer().getLastName())
+                        .build())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TenantDashboardResponse getDashboardStats() {
+        log.info("Fetching unified dashboard stats for current tenant");
+
+        long totalCustomers = customerRepo.count();
+        long totalTransactions = financialTransactionRepo.count();
+        long totalOpenAlerts = alertRepo.countByAlertStatus(AlertStatus.OPEN);
+        long totalUnderReviewCases = caseRepo.countByStatus(CaseStatus.UNDER_REVIEW);
+
+        String currentUserEmail = SecurityContextHolder.getContext().getAuthentication().getName();
+        TenantUser user = tenantUserRepo.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("TenantUser", currentUserEmail));
+
+        List<AlertResponse> recentAlerts = null;
+        List<CaseResponse> recentCases = null;
+
+        if (user.getRole() == UserRole.BANK_ADMIN) {
+            recentAlerts = alertRepo.findAllByAlertStatus(AlertStatus.OPEN, PageRequest.of(0, 5, Sort.by(DESC, "createdAt")))
+                    .getContent().stream()
+                    .map(alertMapper::toResponse)
+                    .collect(Collectors.toList());
+        } else if (user.getRole() == UserRole.COMPLIANCE_OFFICER) {
+            recentCases = caseRepo.findAllByStatus(CaseStatus.UNDER_REVIEW, PageRequest.of(0, 5, Sort.by(DESC, "createdAt")))
+                    .getContent().stream()
+                    .map(caseMapper::toResponse)
+                    .collect(Collectors.toList());
+        }
+
+        return TenantDashboardResponse.builder()
+                .totalCustomers(totalCustomers)
+                .totalTransactions(totalTransactions)
+                .totalOpenAlerts(totalOpenAlerts)
+                .totalUnderReviewCases(totalUnderReviewCases)
+                .recentAlerts(recentAlerts)
+                .recentCases(recentCases)
+                .build();
     }
 }

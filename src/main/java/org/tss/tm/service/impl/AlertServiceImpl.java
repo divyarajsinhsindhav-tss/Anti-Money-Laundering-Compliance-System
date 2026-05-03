@@ -21,6 +21,7 @@ import org.tss.tm.repository.AlertInfoRepo;
 import org.tss.tm.repository.AlertRepo;
 import org.tss.tm.repository.TenantUserRepo;
 import org.tss.tm.service.interfaces.AlertService;
+import org.tss.tm.service.interfaces.CaseService;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -38,6 +39,7 @@ public class AlertServiceImpl implements AlertService {
     private final AlertAuditRepo alertAuditRepo;
     private final TenantUserRepo tenantUserRepo;
     private final AlertInfoRepo alertInfoRepo;
+    private final CaseService caseService;
 
     @Override
     @Transactional
@@ -66,6 +68,10 @@ public class AlertServiceImpl implements AlertService {
 
         TenantUser user = tenantUserRepo.findByEmail(changedByEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("TenantUser", changedByEmail));
+        String email = amlCase.getAssignedTo().getEmail();
+        if (!email.equals(changedByEmail)) {
+            throw new BusinessRuleException("You don't have access to change alert status of this case.");
+        }
 
         AlertStatus oldStatus = alert.getAlertStatus();
         alert.setAlertStatus(status);
