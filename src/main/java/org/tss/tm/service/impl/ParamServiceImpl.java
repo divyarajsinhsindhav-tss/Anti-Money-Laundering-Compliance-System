@@ -152,7 +152,7 @@ public class ParamServiceImpl implements ParamService {
         }
 
         Scenario scenario = scenarioRepo.findScenarioByScenarioCode(request.getScenarioCode())
-                .orElseThrow(() -> new ResourceNotFoundException("Scenario Not Found", new Scenario()));
+                .orElseThrow(() -> new ResourceNotFoundException("Scenario Not Found", request.getScenarioCode()));
 
         ScenarioParam param = ScenarioParam.builder()
                 .scenario(scenario)
@@ -164,7 +164,7 @@ public class ParamServiceImpl implements ParamService {
 
         if (request.getRuleCode() != null) {
             rule = ruleRepo.findByRuleCode(request.getRuleCode())
-                    .orElseThrow(() -> new ResourceNotFoundException("Rule Not Found", new Rule()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Rule Not Found", request.getRuleCode()));
             param.setRule(rule);
         }
         param.setValidFrom(LocalDateTime.now());

@@ -36,7 +36,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import jakarta.persistence.Query;
+
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.sql.DataSource;
@@ -54,393 +56,392 @@ import static org.springframework.data.domain.Sort.Direction.DESC;
 @Slf4j
 public class TenantServiceImpl implements TenantService {
 
-        private final DataSource dataSource;
-        private final FlywayMigration flywayMigration;
-        private final TenantRepo tenantRepo;
-        private final SystemAdminRepo systemAdminRepo;
-        private final TenantUserRepo tenantUserRepo;
-        private final PasswordEncoder passwordEncoder;
-        private final TransactionTemplate transactionTemplate;
-        private final EntityManager entityManager;
-        private final TenantMapper tenantMapper;
-        private final UserMapper userMapper;
-        private final EmailService emailService;
-        private final TenantScenarioRepo tenantScenarioRepo;
-        private final ScenarioMapper scenarioMapper;
-        private final CustomerErrorRepo customerErrorRepo;
-        private final CustomerRepo customerRepo;
-        private final TransactionErrorRepo transactionErrorRepo;
-        private final FinancialTransactionRepo financialTransactionRepo;
-        private final JobRepo jobRepo;
+    private final DataSource dataSource;
+    private final FlywayMigration flywayMigration;
+    private final TenantRepo tenantRepo;
+    private final SystemAdminRepo systemAdminRepo;
+    private final TenantUserRepo tenantUserRepo;
+    private final PasswordEncoder passwordEncoder;
+    private final TransactionTemplate transactionTemplate;
+    private final EntityManager entityManager;
+    private final TenantMapper tenantMapper;
+    private final UserMapper userMapper;
+    private final EmailService emailService;
+    private final TenantScenarioRepo tenantScenarioRepo;
+    private final ScenarioMapper scenarioMapper;
+    private final CustomerErrorRepo customerErrorRepo;
+    private final CustomerRepo customerRepo;
+    private final TransactionErrorRepo transactionErrorRepo;
+    private final FinancialTransactionRepo financialTransactionRepo;
+    private final JobRepo jobRepo;
 
-        @Override
-        public TenantResponse createTenant(TenantRegistrationRequest request, String email) {
-                String tenantCode = request.getTenantCode();
-                validateTenantName(tenantCode);
+    @Override
+    public TenantResponse createTenant(TenantRegistrationRequest request, String email) {
+        String tenantCode = request.getTenantCode();
+        validateTenantName(tenantCode);
 
-                if (tenantRepo.findByName(request.getName()).isPresent()) {
-                        throw new BusinessRuleException("Tenant with name " + request.getName() + " already exists",
-                                        "TENANT_ALREADY_EXISTS");
-                }
+        if (tenantRepo.findByName(request.getName()).isPresent()) {
+            throw new BusinessRuleException("Tenant with name " + request.getName() + " already exists",
+                    "TENANT_ALREADY_EXISTS");
+        }
 
-                String schemaName = TenantConstants.SCHEMA_PREFIX + tenantCode.toLowerCase();
+        String schemaName = TenantConstants.SCHEMA_PREFIX + tenantCode.toLowerCase();
 
-                try (Connection conn = dataSource.getConnection();
-                                Statement stmt = conn.createStatement()) {
-                        stmt.execute("CREATE SCHEMA IF NOT EXISTS " + schemaName);
-                } catch (SQLException e) {
-                        log.error("Failed to create schema for tenant: {}", schemaName, e);
-                        throw new BusinessRuleException("Failed to initialize tenant environment: " + e.getMessage(),
-                                        "SCHEMA_CREATION_FAILED");
-                }
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE SCHEMA IF NOT EXISTS " + schemaName);
+        } catch (SQLException e) {
+            log.error("Failed to create schema for tenant: {}", schemaName, e);
+            throw new BusinessRuleException("Failed to initialize tenant environment: " + e.getMessage(),
+                    "SCHEMA_CREATION_FAILED");
+        }
 
-                Tenant savedTenant = transactionTemplate.execute(status -> {
-                        SystemAdmin admin = systemAdminRepo.findByEmail(email)
-                                        .orElseThrow(() -> new ResourceNotFoundException("SystemAdmin", email));
+        Tenant savedTenant = transactionTemplate.execute(status -> {
+            SystemAdmin admin = systemAdminRepo.findByEmail(email)
+                    .orElseThrow(() -> new ResourceNotFoundException("SystemAdmin", email));
 
-                        Tenant tenant = tenantMapper.toEntity(request);
-                        tenant.setSchemaName(schemaName);
-                        tenant.setOnboardedByAdmin(admin);
+            Tenant tenant = tenantMapper.toEntity(request);
+            tenant.setSchemaName(schemaName);
+            tenant.setOnboardedByAdmin(admin);
 
-                        Tenant saved = tenantRepo.saveAndFlush(tenant);
-                        entityManager.refresh(saved);
-                        return saved;
+            Tenant saved = tenantRepo.saveAndFlush(tenant);
+            entityManager.refresh(saved);
+            return saved;
+        });
+
+        flywayMigration.migrateSchema(schemaName);
+
+        if (request.getAdminRegistrationRequest() != null) {
+            try {
+                TenantContext.setCurrentTenant(schemaName);
+                transactionTemplate.execute(status -> {
+                    registerTenantAdmin(request.getAdminRegistrationRequest(), savedTenant);
+                    return null;
                 });
 
-                flywayMigration.migrateSchema(schemaName);
+                sendWelcomeEmail(savedTenant, request.getAdminRegistrationRequest());
 
-                if (request.getAdminRegistrationRequest() != null) {
-                        try {
-                                TenantContext.setCurrentTenant(schemaName);
-                                transactionTemplate.execute(status -> {
-                                        registerTenantAdmin(request.getAdminRegistrationRequest(), savedTenant);
-                                        return null;
-                                });
-
-                                sendWelcomeEmail(savedTenant, request.getAdminRegistrationRequest());
-
-                        } finally {
-                                TenantContext.clear();
-                        }
-                }
-
-                return tenantMapper.toResponse(savedTenant);
+            } finally {
+                TenantContext.clear();
+            }
         }
 
-        private void sendWelcomeEmail(Tenant tenant,
-                        TenantAdminRegistrationRequest adminRequest) {
-                java.util.Map<String, Object> variables = new java.util.HashMap<>();
-                variables.put("tenantName", tenant.getName());
-                variables.put("adminEmail", adminRequest.getEmail());
+        return tenantMapper.toResponse(savedTenant);
+    }
 
-                emailService.sendHtmlEmail(
-                                adminRequest.getEmail(),
-                                "Welcome to AML Compliance System - " + tenant.getName(),
-                                "tenant-registration",
-                                variables);
+    private void sendWelcomeEmail(Tenant tenant,
+                                  TenantAdminRegistrationRequest adminRequest) {
+        Map<String, Object> variables = new java.util.HashMap<>();
+        variables.put("tenantName", tenant.getName());
+        variables.put("adminEmail", adminRequest.getEmail());
+
+        emailService.sendHtmlEmail(
+                adminRequest.getEmail(),
+                "Welcome to AML Compliance System - " + tenant.getName(),
+                "tenant-registration",
+                variables);
+    }
+
+    @Override
+    public TenantAvailableResponse tenantAvailable(String tenantCode) {
+        boolean isExist = tenantRepo.existsTenantByTenantCode(tenantCode);
+        return TenantAvailableResponse.builder()
+                .isAvailable(isExist)
+                .build();
+    }
+
+    public TenantUser registerTenantAdmin(TenantAdminRegistrationRequest adminRequest,
+                                          Tenant tenant) {
+        TenantUser user = userMapper.toEntity(adminRequest);
+        user.setPasswordHash(passwordEncoder.encode(adminRequest.getPassword()));
+        user.setRole(UserRole.BANK_ADMIN);
+        user.setIsActive(true);
+
+        TenantUser savedUser = tenantUserRepo.saveAndFlush(user);
+        entityManager.refresh(savedUser);
+        return savedUser;
+    }
+
+    @Override
+    public Tenant getTenantByName(String tenantName) {
+        return tenantRepo.findByName(tenantName)
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantName));
+    }
+
+    @Override
+    public List<TenantResponse> getAllTenants() {
+        return tenantMapper.toResponseList(tenantRepo.findAll());
+    }
+
+    @Override
+    public void migrateAllTenants() {
+        tenantRepo.findAll().forEach(tenant -> {
+            flywayMigration.migrateSchema(tenant.getSchemaName());
+        });
+    }
+
+    private void validateTenantName(String tenantName) {
+        if (tenantName == null) {
+            throw new BusinessRuleException("tenantName is null", "INVALID_TENANT_NAME");
+        }
+        if (!tenantName.matches("[a-zA-Z0-9_]+")) {
+            throw new BusinessRuleException("tenantName contains invalid characters",
+                    "INVALID_TENANT_NAME");
+        }
+    }
+
+    @Override
+    public Tenant getCurrentTenant() {
+        String schemaName = TenantContext.getCurrentTenant();
+        System.out.println("schemaName: " + schemaName);
+        if (schemaName == null || schemaName.isEmpty()) {
+            throw new ResourceNotFoundException("Tenant context is missing", "CONTEXT_MISSING");
+        }
+        log.info("Current tenant: {}", schemaName);
+        return tenantRepo
+                .findTenantBySchemaName(schemaName)
+                .orElseThrow(
+                        () -> new ResourceNotFoundException("Tenant with schema", schemaName));
+    }
+
+    @Override
+    public String getTenantCodeBySchemaName(String schemaName) {
+        return tenantRepo.findTenantCodeBySchemaName(schemaName)
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant with schema", schemaName));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ScenarioResponse> getScenarios(Pageable pageable) {
+        Tenant tenant = getCurrentTenant();
+        return tenantScenarioRepo.findAllByTenant(tenant, pageable)
+                .map(mapping -> scenarioMapper.toTenantResponse(mapping.getScenario()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<FileErrorResponse> getFileError(Pageable pageable) {
+        getCurrentTenant();
+
+        return customerErrorRepo.findAll(pageable).map(error -> FileErrorResponse.builder()
+                .identifier(error.getCif())
+                .rawRow(error.getRawRow())
+                .criticalErrors(error.getCriticalErrors())
+                .warningErrors(error.getWarningErrors())
+                .createdAt(error.getCreatedAt())
+                .sourceType("CUSTOMER")
+                .build());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TenantDetailResponse getTenantDetail(String tenantCode) {
+        log.info("Fetching tenant details for code: {}", tenantCode);
+        Tenant tenant = tenantRepo.findByTenantCode(tenantCode)
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantCode));
+
+        List<ScenarioResponse> subscribedScenarios = tenantScenarioRepo.findAllByTenant(tenant)
+                .stream()
+                .map(mapping -> scenarioMapper.toTenantResponse(mapping.getScenario()))
+                .toList();
+
+        long jobRunCount = jobRepo.countByTenant(tenant);
+        List<JobRecord> jobHistory = jobRepo.findByTenantOrderByCreatedAtDesc(tenant);
+
+        return TenantDetailResponse.builder()
+                .tenant(tenantMapper.toResponse(tenant))
+                .subscribedScenarios(subscribedScenarios)
+                .jobRunCount(jobRunCount)
+                .jobHistory(tenantMapper.toJobResponseList(jobHistory))
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public TransactionDashboardResponse getTransactionDashboardStats() {
+        log.info("Fetching transaction dashboard stats for current tenant");
+
+        Tenant tenant = getCurrentTenant();
+
+        long totalTransactions = financialTransactionRepo.count();
+        long totalErrors = transactionErrorRepo.count();
+        long totalBatches = jobRepo.countByTenantAndJobType(tenant, JobType.FILE_UPLOAD_TRANSACTION);
+
+        List<TransactionDashboardResponse.RecentErrorResponse> recentErrors = transactionErrorRepo.findAll(
+                        PageRequest.of(0, 5, Sort.by(DESC, "createdAt")))
+                .getContent().stream()
+                .map(error -> TransactionDashboardResponse.RecentErrorResponse.builder()
+                        .id(error.getErrorId())
+                        .transactionId(error.getTxnNo())
+                        .errorMessage(error.getCriticalErrors() != null
+                                && !error.getCriticalErrors().isEmpty()
+                                ? error.getCriticalErrors().get(0)
+                                : "Data Validation Failure")
+                        .errorCode("ERR_" + error.getErrorId())
+                        .timestamp(error.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        List<TransactionDashboardResponse.RecentJobResponse> recentJobs = jobRepo.findByTenantAndJobType(
+                        tenant, JobType.FILE_UPLOAD_TRANSACTION,
+                        PageRequest.of(0, 5, Sort.by(DESC, "createdAt"))).getContent().stream()
+                .map(job -> TransactionDashboardResponse.RecentJobResponse.builder()
+                        .id(job.getJobId().toString())
+                        .status(job.getStatus().name())
+                        .errorCount(0)
+                        .startTime(job.getStartedAt() != null ? job.getStartedAt()
+                                : job.getCreatedAt())
+                        .endTime(job.getCompletedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        return TransactionDashboardResponse.builder()
+                .totalTransactions(totalTransactions)
+                .totalErrors(totalErrors)
+                .totalBatches(totalBatches)
+                .recentErrors(recentErrors)
+                .recentJobs(recentJobs)
+                .build();
+    }
+
+    @Override
+    public List<TransactionDashboardResponse.RecentJobResponse> getTransactionJobs() {
+        Tenant tenant = getCurrentTenant();
+        return jobRepo.findByTenantAndJobType(
+                        tenant, JobType.FILE_UPLOAD_TRANSACTION,
+                        PageRequest.of(0, 10, Sort.by(DESC, "createdAt"))).getContent().stream()
+                .map(job -> TransactionDashboardResponse.RecentJobResponse.builder()
+                        .id(job.getJobId().toString())
+                        .status(job.getStatus().name())
+                        .errorCount(0)
+                        .startTime(job.getStartedAt() != null ? job.getStartedAt()
+                                : job.getCreatedAt())
+                        .endTime(job.getCompletedAt())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<FileErrorResponse> getTransactionErrors(String jobId, Pageable pageable) {
+        Page<TransactionError> errorsPage;
+
+        if (jobId != null && !jobId.trim().isEmpty()) {
+            errorsPage = transactionErrorRepo.findByJobId(jobId, pageable);
+        } else {
+            errorsPage = transactionErrorRepo.findAll(pageable);
         }
 
-        @Override
-        public TenantAvailableResponse tenantAvailable(String tenantCode) {
-                boolean isExist = tenantRepo.existsTenantByTenantCode(tenantCode);
-                return TenantAvailableResponse.builder()
-                                .isAvailable(isExist)
-                                .build();
+        return errorsPage.map(error -> FileErrorResponse.builder()
+                .errorId(error.getErrorId())
+                .jobId(error.getJobId())
+                .identifier(error.getTxnNo())
+                .rawRow(error.getRawRow())
+                .criticalErrors(error.getCriticalErrors())
+                .warningErrors(error.getWarningErrors())
+                .createdAt(error.getCreatedAt())
+                .sourceType("TRANSACTION")
+                .build());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public CustomerDashboardResponse getCustomerDashboardStats() {
+        log.info("Fetching customer dashboard stats for current tenant");
+        Tenant tenant = getCurrentTenant();
+
+        long totalCustomers = customerRepo.count();
+        long totalErrors = customerErrorRepo.count();
+        long totalBatches = jobRepo.countByTenantAndJobType(tenant, JobType.FILE_UPLOAD_CUSTOMER);
+
+        List<CustomerDashboardResponse.RecentErrorResponse> recentErrors = customerErrorRepo.findAll(
+                        PageRequest.of(0, 5, Sort.by(DESC, "createdAt")))
+                .getContent().stream()
+                .map(error -> CustomerDashboardResponse.RecentErrorResponse.builder()
+                        .id(error.getErrorId())
+                        .cif(error.getCif())
+                        .errorMessage(error.getCriticalErrors() != null
+                                && !error.getCriticalErrors().isEmpty()
+                                ? error.getCriticalErrors().get(0)
+                                : "Data Validation Failure")
+                        .errorCode("ERR_" + error.getErrorId())
+                        .timestamp(error.getCreatedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        List<CustomerDashboardResponse.RecentJobResponse> recentJobs = jobRepo.findByTenantAndJobType(
+                        tenant, JobType.FILE_UPLOAD_CUSTOMER, PageRequest.of(0, 5, Sort.by(DESC, "createdAt")))
+                .getContent().stream()
+                .map(job -> CustomerDashboardResponse.RecentJobResponse.builder()
+                        .id(job.getJobId().toString())
+                        .status(job.getStatus().name())
+                        .errorCount(0)
+                        .startTime(job.getStartedAt() != null ? job.getStartedAt()
+                                : job.getCreatedAt())
+                        .endTime(job.getCompletedAt())
+                        .build())
+                .collect(Collectors.toList());
+
+        return CustomerDashboardResponse.builder()
+                .totalCustomers(totalCustomers)
+                .totalErrors(totalErrors)
+                .totalBatches(totalBatches)
+                .recentErrors(recentErrors)
+                .recentJobs(recentJobs)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CustomerDashboardResponse.RecentJobResponse> getCustomerJobs() {
+        Tenant tenant = getCurrentTenant();
+        return jobRepo.findByTenantAndJobType(
+                        tenant, JobType.FILE_UPLOAD_CUSTOMER, PageRequest.of(0, 10, Sort.by(DESC, "createdAt")))
+                .getContent().stream()
+                .map(job -> CustomerDashboardResponse.RecentJobResponse.builder()
+                        .id(job.getJobId().toString())
+                        .status(job.getStatus().name())
+                        .errorCount(0)
+                        .startTime(job.getStartedAt() != null ? job.getStartedAt()
+                                : job.getCreatedAt())
+                        .endTime(job.getCompletedAt())
+                        .build())
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<FileErrorResponse> getCustomerErrors(String jobId, Pageable pageable) {
+        Page<CustomerError> errorsPage;
+
+        if (jobId != null && !jobId.trim().isEmpty()) {
+            errorsPage = customerErrorRepo.findByJobId(jobId, pageable);
+        } else {
+            errorsPage = customerErrorRepo.findAll(pageable);
         }
 
-        public TenantUser registerTenantAdmin(TenantAdminRegistrationRequest adminRequest,
-                        Tenant tenant) {
-                TenantUser user = userMapper.toEntity(adminRequest);
-                user.setPasswordHash(passwordEncoder.encode(adminRequest.getPassword()));
-                user.setRole(UserRole.BANK_ADMIN);
-                user.setIsActive(true);
+        return errorsPage.map(error -> FileErrorResponse.builder()
+                .errorId(error.getErrorId())
+                .jobId(error.getJobId())
+                .identifier(error.getCif())
+                .rawRow(error.getRawRow())
+                .criticalErrors(error.getCriticalErrors())
+                .warningErrors(error.getWarningErrors())
+                .createdAt(error.getCreatedAt())
+                .sourceType("CUSTOMER")
+                .build());
+    }
 
-                TenantUser savedUser = tenantUserRepo.saveAndFlush(user);
-                entityManager.refresh(savedUser);
-                return savedUser;
-        }
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.Map<String, Long> getRuleEngineStats() {
+        Tenant tenant = getCurrentTenant();
+        long totalScenarios = tenantScenarioRepo.countByTenant(tenant);
+        long totalRuns = jobRepo.countByTenantAndJobType(tenant, JobType.RULE_ENGINE);
 
-        @Override
-        public Tenant getTenantByName(String tenantName) {
-                return tenantRepo.findByName(tenantName)
-                                .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantName));
-        }
-
-        @Override
-        public List<TenantResponse> getAllTenants() {
-                return tenantMapper.toResponseList(tenantRepo.findAll());
-        }
-
-        @Override
-        public void migrateAllTenants() {
-                tenantRepo.findAll().forEach(tenant -> {
-                        flywayMigration.migrateSchema(tenant.getSchemaName());
-                });
-        }
-
-        private void validateTenantName(String tenantName) {
-                if (tenantName == null) {
-                        throw new BusinessRuleException("tenantName is null", "INVALID_TENANT_NAME");
-                }
-                if (!tenantName.matches("[a-zA-Z0-9_]+")) {
-                        throw new BusinessRuleException("tenantName contains invalid characters",
-                                        "INVALID_TENANT_NAME");
-                }
-        }
-
-        @Override
-        public Tenant getCurrentTenant() {
-                String schemaName = TenantContext.getCurrentTenant();
-                System.out.println("schemaName: " + schemaName);
-                if (schemaName == null || schemaName.isEmpty()) {
-                        throw new ResourceNotFoundException("Tenant context is missing", "CONTEXT_MISSING");
-                }
-                log.info("Current tenant: {}", schemaName);
-                return tenantRepo
-                                .findTenantBySchemaName(schemaName)
-                                .orElseThrow(
-                                                () -> new ResourceNotFoundException("Tenant with schema", schemaName));
-        }
-
-        @Override
-        public String getTenantCodeBySchemaName(String schemaName) {
-                return tenantRepo.findTenantCodeBySchemaName(schemaName)
-                                .orElseThrow(() -> new ResourceNotFoundException("Tenant with schema", schemaName));
-        }
-
-        @Override
-        @Transactional(readOnly = true)
-        public Page<ScenarioResponse> getScenarios(Pageable pageable) {
-                Tenant tenant = getCurrentTenant();
-                return tenantScenarioRepo.findAllByTenant(tenant, pageable)
-                                .map(mapping -> scenarioMapper.toTenantResponse(mapping.getScenario()));
-        }
-
-        @Override
-        @Transactional(readOnly = true)
-        public Page<FileErrorResponse> getFileError(Pageable pageable) {
-                // Ensure tenant context is valid
-                getCurrentTenant();
-
-                return customerErrorRepo.findAll(pageable).map(error -> FileErrorResponse.builder()
-                                .identifier(error.getCif())
-                                .rawRow(error.getRawRow())
-                                .criticalErrors(error.getCriticalErrors())
-                                .warningErrors(error.getWarningErrors())
-                                .createdAt(error.getCreatedAt())
-                                .sourceType("CUSTOMER")
-                                .build());
-        }
-
-        @Override
-        @Transactional(readOnly = true)
-        public TenantDetailResponse getTenantDetail(String tenantCode) {
-                log.info("Fetching tenant details for code: {}", tenantCode);
-                Tenant tenant = tenantRepo.findByTenantCode(tenantCode)
-                                .orElseThrow(() -> new ResourceNotFoundException("Tenant", tenantCode));
-
-                List<ScenarioResponse> subscribedScenarios = tenantScenarioRepo.findAllByTenant(tenant)
-                                .stream()
-                                .map(mapping -> scenarioMapper.toTenantResponse(mapping.getScenario()))
-                                .toList();
-
-                long jobRunCount = jobRepo.countByTenant(tenant);
-                List<JobRecord> jobHistory = jobRepo.findByTenantOrderByCreatedAtDesc(tenant);
-
-                return TenantDetailResponse.builder()
-                                .tenant(tenantMapper.toResponse(tenant))
-                                .subscribedScenarios(subscribedScenarios)
-                                .jobRunCount(jobRunCount)
-                                .jobHistory(tenantMapper.toJobResponseList(jobHistory))
-                                .build();
-        }
-
-        @Override
-        @Transactional(readOnly = true)
-        public TransactionDashboardResponse getTransactionDashboardStats() {
-                log.info("Fetching transaction dashboard stats for current tenant");
-
-                Tenant tenant = getCurrentTenant();
-
-                long totalTransactions = financialTransactionRepo.count();
-                long totalErrors = transactionErrorRepo.count();
-                long totalBatches = jobRepo.countByTenantAndJobType(tenant, JobType.FILE_UPLOAD_TRANSACTION);
-
-                List<TransactionDashboardResponse.RecentErrorResponse> recentErrors = transactionErrorRepo.findAll(
-                                PageRequest.of(0, 5, Sort.by(DESC, "createdAt")))
-                                .getContent().stream()
-                                .map(error -> TransactionDashboardResponse.RecentErrorResponse.builder()
-                                                .id(error.getErrorId())
-                                                .transactionId(error.getTxnNo())
-                                                .errorMessage(error.getCriticalErrors() != null
-                                                                && !error.getCriticalErrors().isEmpty()
-                                                                                ? error.getCriticalErrors().get(0)
-                                                                                : "Data Validation Failure")
-                                                .errorCode("ERR_" + error.getErrorId())
-                                                .timestamp(error.getCreatedAt())
-                                                .build())
-                                .collect(Collectors.toList());
-
-                List<TransactionDashboardResponse.RecentJobResponse> recentJobs = jobRepo.findByTenantAndJobType(
-                                tenant, JobType.FILE_UPLOAD_TRANSACTION,
-                                PageRequest.of(0, 5, Sort.by(DESC, "createdAt"))).getContent().stream()
-                                .map(job -> TransactionDashboardResponse.RecentJobResponse.builder()
-                                                .id(job.getJobId().toString())
-                                                .status(job.getStatus().name())
-                                                .errorCount(0)
-                                                .startTime(job.getStartedAt() != null ? job.getStartedAt()
-                                                                : job.getCreatedAt())
-                                                .endTime(job.getCompletedAt())
-                                                .build())
-                                .collect(Collectors.toList());
-
-                return TransactionDashboardResponse.builder()
-                                .totalTransactions(totalTransactions)
-                                .totalErrors(totalErrors)
-                                .totalBatches(totalBatches)
-                                .recentErrors(recentErrors)
-                                .recentJobs(recentJobs)
-                                .build();
-        }
-
-        @Override
-        public List<TransactionDashboardResponse.RecentJobResponse> getTransactionJobs() {
-                Tenant tenant = getCurrentTenant();
-                return jobRepo.findByTenantAndJobType(
-                                tenant, JobType.FILE_UPLOAD_TRANSACTION,
-                                PageRequest.of(0, 10, Sort.by(DESC, "createdAt"))).getContent().stream()
-                                .map(job -> TransactionDashboardResponse.RecentJobResponse.builder()
-                                                .id(job.getJobId().toString())
-                                                .status(job.getStatus().name())
-                                                .errorCount(0) // Default for now
-                                                .startTime(job.getStartedAt() != null ? job.getStartedAt()
-                                                                : job.getCreatedAt())
-                                                .endTime(job.getCompletedAt())
-                                                .build())
-                                .collect(Collectors.toList());
-        }
-
-        @Override
-        @Transactional(readOnly = true)
-        public Page<FileErrorResponse> getTransactionErrors(String jobId, Pageable pageable) {
-                Page<TransactionError> errorsPage;
-
-                if (jobId != null && !jobId.trim().isEmpty()) {
-                        errorsPage = transactionErrorRepo.findByJobId(jobId, pageable);
-                } else {
-                        errorsPage = transactionErrorRepo.findAll(pageable);
-                }
-
-                return errorsPage.map(error -> FileErrorResponse.builder()
-                                .errorId(error.getErrorId())
-                                .jobId(error.getJobId())
-                                .identifier(error.getTxnNo())
-                                .rawRow(error.getRawRow())
-                                .criticalErrors(error.getCriticalErrors())
-                                .warningErrors(error.getWarningErrors())
-                                .createdAt(error.getCreatedAt())
-                                .sourceType("TRANSACTION")
-                                .build());
-        }
-
-        @Override
-        @Transactional(readOnly = true)
-        public CustomerDashboardResponse getCustomerDashboardStats() {
-                log.info("Fetching customer dashboard stats for current tenant");
-                Tenant tenant = getCurrentTenant();
-
-                long totalCustomers = customerRepo.count();
-                long totalErrors = customerErrorRepo.count();
-                long totalBatches = jobRepo.countByTenantAndJobType(tenant, JobType.FILE_UPLOAD_CUSTOMER);
-
-                List<CustomerDashboardResponse.RecentErrorResponse> recentErrors = customerErrorRepo.findAll(
-                                PageRequest.of(0, 5, Sort.by(DESC, "createdAt")))
-                                .getContent().stream()
-                                .map(error -> CustomerDashboardResponse.RecentErrorResponse.builder()
-                                                .id(error.getErrorId())
-                                                .cif(error.getCif())
-                                                .errorMessage(error.getCriticalErrors() != null
-                                                                && !error.getCriticalErrors().isEmpty()
-                                                                                ? error.getCriticalErrors().get(0)
-                                                                                : "Data Validation Failure")
-                                                .errorCode("ERR_" + error.getErrorId())
-                                                .timestamp(error.getCreatedAt())
-                                                .build())
-                                .collect(Collectors.toList());
-
-                List<CustomerDashboardResponse.RecentJobResponse> recentJobs = jobRepo.findByTenantAndJobType(
-                                tenant, JobType.FILE_UPLOAD_CUSTOMER, PageRequest.of(0, 5, Sort.by(DESC, "createdAt")))
-                                .getContent().stream()
-                                .map(job -> CustomerDashboardResponse.RecentJobResponse.builder()
-                                                .id(job.getJobId().toString())
-                                                .status(job.getStatus().name())
-                                                .errorCount(0)
-                                                .startTime(job.getStartedAt() != null ? job.getStartedAt()
-                                                                : job.getCreatedAt())
-                                                .endTime(job.getCompletedAt())
-                                                .build())
-                                .collect(Collectors.toList());
-
-                return CustomerDashboardResponse.builder()
-                                .totalCustomers(totalCustomers)
-                                .totalErrors(totalErrors)
-                                .totalBatches(totalBatches)
-                                .recentErrors(recentErrors)
-                                .recentJobs(recentJobs)
-                                .build();
-        }
-
-        @Override
-        @Transactional(readOnly = true)
-        public List<CustomerDashboardResponse.RecentJobResponse> getCustomerJobs() {
-                Tenant tenant = getCurrentTenant();
-                return jobRepo.findByTenantAndJobType(
-                                tenant, JobType.FILE_UPLOAD_CUSTOMER, PageRequest.of(0, 10, Sort.by(DESC, "createdAt")))
-                                .getContent().stream()
-                                .map(job -> CustomerDashboardResponse.RecentJobResponse.builder()
-                                                .id(job.getJobId().toString())
-                                                .status(job.getStatus().name())
-                                                .errorCount(0)
-                                                .startTime(job.getStartedAt() != null ? job.getStartedAt()
-                                                                : job.getCreatedAt())
-                                                .endTime(job.getCompletedAt())
-                                                .build())
-                                .collect(Collectors.toList());
-        }
-
-        @Override
-        @Transactional(readOnly = true)
-        public Page<FileErrorResponse> getCustomerErrors(String jobId, Pageable pageable) {
-                Page<CustomerError> errorsPage;
-
-                if (jobId != null && !jobId.trim().isEmpty()) {
-                        errorsPage = customerErrorRepo.findByJobId(jobId, pageable);
-                } else {
-                        errorsPage = customerErrorRepo.findAll(pageable);
-                }
-
-                return errorsPage.map(error -> FileErrorResponse.builder()
-                                .errorId(error.getErrorId())
-                                .jobId(error.getJobId())
-                                .identifier(error.getCif())
-                                .rawRow(error.getRawRow())
-                                .criticalErrors(error.getCriticalErrors())
-                                .warningErrors(error.getWarningErrors())
-                                .createdAt(error.getCreatedAt())
-                                .sourceType("CUSTOMER")
-                                .build());
-        }
-
-        @Override
-        @Transactional(readOnly = true)
-        public java.util.Map<String, Long> getRuleEngineStats() {
-                Tenant tenant = getCurrentTenant();
-                long totalScenarios = tenantScenarioRepo.countByTenant(tenant);
-                long totalRuns = jobRepo.countByTenantAndJobType(tenant, JobType.RULE_ENGINE);
-
-                java.util.Map<String, Long> stats = new java.util.HashMap<>();
-                stats.put("totalScenarios", totalScenarios);
-                stats.put("totalRuns", totalRuns);
-                return stats;
-        }
+        java.util.Map<String, Long> stats = new java.util.HashMap<>();
+        stats.put("totalScenarios", totalScenarios);
+        stats.put("totalRuns", totalRuns);
+        return stats;
+    }
 }

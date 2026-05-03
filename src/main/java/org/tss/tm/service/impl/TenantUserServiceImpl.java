@@ -76,7 +76,6 @@ public class TenantUserServiceImpl implements TenantUserService {
         List<TenantUser> complianceOfficers = tenantUserRepo.findAllByRole(UserRole.COMPLIANCE_OFFICER);
         List<UserResponse> responses = userMapper.toResponseList(complianceOfficers);
 
-        // Populate case counts
         responses.forEach(response -> {
             long count = caseRepo.countByAssignedTo_UserCode(response.getUserCode());
             response.setAssignedCasesCount(count);

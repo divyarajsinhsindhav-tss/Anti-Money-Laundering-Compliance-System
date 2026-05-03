@@ -63,7 +63,6 @@ public class AuthServiceImpl implements AuthService {
             CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
             String role = userDetails.getAuthorities().iterator().next().getAuthority();
 
-            // Updated last login for tenant users
             if (!"public".equals(currentTenant)) {
                 tenantUserRepo.findByEmail(loginRequest.getEmail()).ifPresent(user -> {
                     user.setLastLogin(java.time.LocalDateTime.now());

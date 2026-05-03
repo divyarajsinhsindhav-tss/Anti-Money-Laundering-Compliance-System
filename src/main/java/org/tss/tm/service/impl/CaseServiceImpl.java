@@ -153,7 +153,6 @@ public class CaseServiceImpl implements CaseService {
             return List.of();
         }
 
-        // Group alerts by customer
         Map<Customer, List<Alert>> alertsByCustomer = openAlerts.stream()
                 .collect(Collectors.groupingBy(Alert::getCustomer));
 
@@ -170,7 +169,6 @@ public class CaseServiceImpl implements CaseService {
                             + " (CIF: " + customer.getCif() + ")")
                     .build();
 
-            // Save the case first
             AmlCase savedCase = caseRepo.saveAndFlush(amlCase);
             entityManager.refresh(savedCase);
 

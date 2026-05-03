@@ -87,7 +87,7 @@ public class AmlExecutionEngine {
         for (String code : ruleCodes) {
             Rule dbRule = dbRuleMap.get(code);
             if (dbRule == null) {
-                RuleEngineError ruleEngineError=RuleEngineError.builder().info("Rule Failure: Internal issue").scenarioCode(blueprint.getScenarioCode()).jobId(String.valueOf(currentJobId)).ruleCode(code).severity(ErrorSeverity.MEDIUM).build();
+                RuleEngineError ruleEngineError = RuleEngineError.builder().info("Rule Failure: Internal issue").scenarioCode(blueprint.getScenarioCode()).jobId(String.valueOf(currentJobId)).ruleCode(code).severity(ErrorSeverity.MEDIUM).build();
                 ruleEngineErrorRepo.save(ruleEngineError);
                 throw new IllegalStateException("Missing DB rule: " + code);
             }
@@ -283,9 +283,9 @@ public class AmlExecutionEngine {
                                 return alertRepo.saveAndFlush(newAlert);
                             });
 
-                    Session session = entityManager.unwrap(org.hibernate.Session.class);
+                    Session session = entityManager.unwrap(Session.class);
                     session.doWork(connection -> {
-                        try (java.sql.PreparedStatement ps = connection.prepareStatement(insert1to1Sql)) {
+                        try (PreparedStatement ps = connection.prepareStatement(insert1to1Sql)) {
                             for (SingleTxnResult violation : customerViolations) {
                                 ps.setObject(1, targetAlert.getAlertId());
                                 ps.setObject(2, violation.brokenRuleId());
